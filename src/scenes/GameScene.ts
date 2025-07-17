@@ -39,7 +39,7 @@ export default class GameScene extends Phaser.Scene {
         this.doors = this.physics.add.staticGroup();
         this.createWorld();
         
-        const playerTexture = this.gender === 'male' ? 'player_boy' : 'player_girl';
+        const playerTexture = this.gender === 'male' ? 'boy_walk_1' : 'girl_walk_1';
         this.player = new Player(this, 2500, 2500, playerTexture);
         
         this.physics.add.collider(this.player, this.walls);

@@ -6,8 +6,13 @@ export default class BootScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('player_boy', 'assets/player/boy.png');
-        this.load.image('player_girl', 'assets/player/girl.png');
+        // this.load.image('player_boy', 'assets/player/boy.png');
+        // this.load.image('player_girl', 'assets/player/girl.png');
+
+        for (let i = 1; i <= 4; i++) {
+            this.load.image(`boy_walk_${i}`, `assets/player/boy_walk_${i}.png`);
+            this.load.image(`girl_walk_${i}`, `assets/player/girl_walk_${i}.png`);
+        }
         
         // Загружаем иконки-монетки
         this.load.image('coin_twitter', 'assets/coins/twitter.png');
