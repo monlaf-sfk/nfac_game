@@ -13,6 +13,10 @@ export default class Weapon extends Phaser.Physics.Arcade.Sprite {
         this.scene.physics.add.existing(this);
         this.setScale(0.02);
         this.setOrigin(0.1, 0.5);
+        
+        if (this.body) {
+            (this.body as Phaser.Physics.Arcade.Body).setEnable(false);
+        }
     }
 
     public fire(owner: Phaser.Physics.Arcade.Sprite, time: number): void {

@@ -23,6 +23,23 @@ export default class BootScene extends Phaser.Scene {
 
         this.load.image('ak-47', 'assets/weapons/ak-47.png');
 
+        // Bosses
+        this.load.image('abai', 'assets/bosses/abai.png');
+        this.load.image('diana', 'assets/bosses/diana.png');
+        
+        // Friends
+        this.load.image('almass', 'assets/friends/almass.png');
+
+        // Загрузка кадров для врага
+        for (let i = 1; i <= 2; i++) {
+            this.load.image(`spirit_stay_${i}`, `assets/enemies/spirit_stay_${i}.png`);
+        }
+        for (let i = 1; i <= 8; i++) {
+            this.load.image(`spirit_walk_${i}`, `assets/enemies/spirit_walk_${i}.png`);
+            this.load.image(`spirit_fight_${i}`, `assets/enemies/spirit_fight_${i}.png`);
+        }
+
+
         const graphics = this.make.graphics();
 
         // Текстура пола

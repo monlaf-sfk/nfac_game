@@ -5,6 +5,18 @@ import Weapon from '../objects/Weapon';
 import Enemy from '../objects/Enemy';
 import Bullet from '../objects/Bullet';
 
+interface Room {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    id: string;
+    enemies: { type: string, count: number }[];
+    coins: { name: string, count: number }[];
+    isCleared: boolean;
+    openings: { top?: boolean, bottom?: boolean, left?: boolean, right?: boolean };
+}
+
 export default class GameScene extends Phaser.Scene {
     public player!: Player;
     private gender!: string;
@@ -16,6 +28,7 @@ export default class GameScene extends Phaser.Scene {
     private doors!: Phaser.Physics.Arcade.StaticGroup;
     private coinCount = 0;
     public crosshair!: Phaser.GameObjects.Image;
+    private rooms: Room[] = [];
 
     constructor() {
         super('GameScene');
@@ -31,22 +44,27 @@ export default class GameScene extends Phaser.Scene {
         this.walls = this.physics.add.staticGroup();
         this.coins = this.physics.add.group();
         this.weapons = this.physics.add.group();
-        this.enemies = this.physics.add.group();
+        this.enemies = this.physics.add.group({
+            runChildUpdate: true,
+        });
         this.bullets = this.physics.add.group({
             classType: Bullet,
             runChildUpdate: true
         });
         this.doors = this.physics.add.staticGroup();
-        this.createWorld();
-        
+
+        // Сначала создаем игрока
         const playerTexture = this.gender === 'male' ? 'boy_walk_1' : 'girl_walk_1';
         this.player = new Player(this, 2500, 2500, playerTexture);
-        
+
+        // Теперь создаем мир, который зависит от игрока
+        this.createWorld();
+
         this.physics.add.collider(this.player, this.walls);
         this.physics.add.collider(this.player, this.doors);
         this.physics.add.overlap(this.player, this.coins, this.collectCoin, undefined, this);
         this.physics.add.overlap(this.player, this.weapons, this.pickUpWeapon, undefined, this);
-        this.physics.add.collider(this.player, this.enemies);
+        this.physics.add.collider(this.player, this.enemies, this.playerHitByEnemy, undefined, this);
         this.physics.add.collider(this.enemies, this.walls);
         this.physics.add.collider(this.bullets, this.walls, this.bulletHitWall, undefined, this);
         this.physics.add.collider(this.bullets, this.enemies, this.bulletHitEnemy, undefined, this);
@@ -63,41 +81,107 @@ export default class GameScene extends Phaser.Scene {
     }
 
     createWorld() {
-        // Новые, правильные координаты для ровных комнат
-        const startRoom = { x: 2500, y: 2500 };
-        const defRoom = { x: 2500, y: 3396 };
-        const leftRoom = { x: 1476, y: 2500 };
-        const leftDownRoom = { x: 1476, y: 3396 };
-        const rightRoom = { x: 3524, y: 2500 };
-        const minibossRoom = { x: 3524, y: 1604 };
-        const bossRoom = { x: 3524, y: 708 };
+        const roomSize = { width: 768, height: 640 };
+        const bottomRoomY = 3396;
 
-        // 1. Сначала создаем всю геометрию: комнаты и коридоры
-        this.createRoom(startRoom.x, startRoom.y, { left: true, right: true, bottom: true });
-        this.createRoom(defRoom.x, defRoom.y, { top: true });
-        this.createRoom(leftRoom.x, leftRoom.y, { right: true, bottom: true });
-        this.createRoom(leftDownRoom.x, leftDownRoom.y, { top: true });
-        this.createRoom(rightRoom.x, rightRoom.y, { left: true, top: true });
-        this.createRoom(minibossRoom.x, minibossRoom.y, { bottom: true, top: true });
-        this.createRoom(bossRoom.x, bossRoom.y, { bottom: true });
-        
-        this.createHorizontalCorridor(leftRoom.x, startRoom.x, startRoom.y);
-        this.createHorizontalCorridor(startRoom.x, rightRoom.x, startRoom.y);
-        this.createVerticalCorridor(startRoom.y, defRoom.y, defRoom.x);
-        this.createVerticalCorridor(leftRoom.y, leftDownRoom.y, leftRoom.x);
-        this.createVerticalCorridor(minibossRoom.y, rightRoom.y, rightRoom.x);
+        this.rooms = [
+            { id: 'room1', x: 2500, y: 2500, ...roomSize, enemies: [{ type: 'spirit', count: 2 }, { type: 'cleaner', count: 1 }], coins: [{ name: 'coin_link', count: 1 }], isCleared: false, openings: { left: true, right: true, bottom: true } },
+            { id: 'room2', x: 1476, y: 2500, ...roomSize, enemies: [{ type: 'spirit', count: 3 }, { type: 'guard', count: 1 }], coins: [{ name: 'coin_inst', count: 1 }, { name: 'coin_threads', count: 1 }], isCleared: false, openings: { right: true, bottom: true } },
+            { id: 'room3', x: 3524, y: 2500, ...roomSize, enemies: [{ type: 'cleaner', count: 2 }, { type: 'spirit', count: 2 }, { type: 'guard', count: 1 }], coins: [{ name: 'coin_tiktok', count: 1 }, { name: 'coin_twitter', count: 1 }], isCleared: false, openings: { left: true, top: true } },
+            { id: 'miniboss_room', x: 3524, y: 1604, ...roomSize, enemies: [{ type: 'spirit', count: 5 }], coins: [{ name: 'coin_inst', count: 1 }], isCleared: false, openings: { top: true, bottom: true } },
+            { id: 'boss_room', x: 3524, y: 708, ...roomSize, enemies: [{ type: 'spirit', count: 8 }], coins: [{ name: 'coin_link', count: 1 }], isCleared: false, openings: { bottom: true } },
+            { id: 'bottom_left_room', x: 1476, y: bottomRoomY, ...roomSize, enemies: [{ type: 'spirit', count: 3 }], coins: [{ name: 'coin_threads', count: 1 }], isCleared: false, openings: { top: true, right: true } },
+            { id: 'bottom_center_room', x: 2500, y: bottomRoomY, ...roomSize, enemies: [{ type: 'spirit', count: 3 }], coins: [{ name: 'coin_twitter', count: 1 }], isCleared: false, openings: { top: true, left: true } }
+        ];
+
+        this.rooms.forEach(room => {
+            this.createRoom(room.x, room.y, room.openings);
+        });
+
+        const room1 = this.rooms.find(r => r.id === 'room1')!;
+        const room2 = this.rooms.find(r => r.id === 'room2')!;
+        const room3 = this.rooms.find(r => r.id === 'room3')!;
+        const minibossRoom = this.rooms.find(r => r.id === 'miniboss_room')!;
+        const bossRoom = this.rooms.find(r => r.id === 'boss_room')!;
+        const bottomLeftRoom = this.rooms.find(r => r.id === 'bottom_left_room')!;
+        const bottomCenterRoom = this.rooms.find(r => r.id === 'bottom_center_room')!;
+
+        this.createHorizontalCorridor(room2.x, room1.x, room1.y);
+        this.createHorizontalCorridor(room1.x, room3.x, room1.y);
+        this.createVerticalCorridor(minibossRoom.y, room3.y, room3.x);
         this.createVerticalCorridor(bossRoom.y, minibossRoom.y, minibossRoom.x);
+        this.createVerticalCorridor(room1.y, bottomCenterRoom.y, room1.x);
+        this.createVerticalCorridor(room2.y, bottomLeftRoom.y, room2.x);
+        this.createHorizontalCorridor(bottomLeftRoom.x, bottomCenterRoom.x, bottomCenterRoom.y);
 
-        // 2. Теперь, когда пол на месте, размещаем монеты
-        const promoRooms = [startRoom, defRoom, leftRoom, leftDownRoom, rightRoom];
-        promoRooms.forEach(room => this.placeCoinInRoom(room.x, room.y));
-        
-        this.weapons.add(new Weapon(this, startRoom.x, startRoom.y, 'ak-47'));
-        this.enemies.add(new Enemy(this, defRoom.x, defRoom.y));
+        this.weapons.add(new Weapon(this, room1.x, room1.y, 'ak-47'));
 
-        // Размещаем двери
-        this.placeDoor(rightRoom.x, rightRoom.y - 320 - 64, 'miniboss'); // Дверь к мини-боссу
-        this.placeDoor(minibossRoom.x, minibossRoom.y - 320 - 64, 'boss'); // Дверь к боссу (пока всегда закрыта)
+        this.rooms.forEach(room => {
+            this.spawnEnemies(room);
+        });
+    }
+
+    spawnEnemies(room: Room) {
+        room.enemies.forEach(enemyInfo => {
+            for (let i = 0; i < enemyInfo.count; i++) {
+                const x = Phaser.Math.Between(room.x - room.width / 4, room.x + room.width / 4);
+                const y = Phaser.Math.Between(room.y - room.height / 4, room.y + room.height / 4);
+                const enemy = new Enemy(this, x, y, this.player);
+                enemy.setData('roomId', room.id);
+                this.enemies.add(enemy);
+            }
+        });
+    }
+
+    checkRoomCompletion(roomId: string) {
+        console.log(`Checking completion for room: ${roomId}`);
+        const room = this.rooms.find(r => r.id === roomId);
+        if (!room || room.isCleared) {
+            console.log(`Room ${roomId} is already cleared or does not exist.`);
+            return;
+        }
+
+        const remainingEnemies = this.enemies.getChildren().filter(e => e.getData('roomId') === roomId && e.active);
+        console.log(`Remaining enemies in room ${roomId}: ${remainingEnemies.length}`);
+        if (remainingEnemies.length === 0) {
+            console.log(`Room ${roomId} is cleared, spawning coins.`);
+            room.isCleared = true;
+            this.spawnCoins(room);
+        }
+    }
+
+    spawnCoins(room: Room) {
+        room.coins.forEach(coinInfo => {
+            for (let i = 0; i < coinInfo.count; i++) {
+                let x, y;
+                if (room.id === 'room1') {
+                    x = room.x;
+                    y = room.y;
+                } else if (room.id === 'room2') {
+                    x = i === 0 ? room.x - room.width / 4 : room.x + room.width / 4;
+                    y = i === 0 ? room.y - room.height / 4 : room.y + room.height / 4;
+                } else if (room.id === 'room3') {
+                    x = room.x;
+                    y = i === 0 ? room.y - room.height / 4 : room.y + room.height / 4;
+                } else {
+                    x = Phaser.Math.Between(room.x - room.width / 4, room.x + room.width / 4);
+                    y = Phaser.Math.Between(room.y - room.height / 4, room.y + room.height / 4);
+                }
+                const coin = this.coins.create(x, y, coinInfo.name);
+                const newScale = 0.005; 
+                coin.setScale(newScale); 
+
+                this.tweens.add({
+                    targets: coin,
+                    scaleX: newScale * 1.2,
+                    scaleY: newScale * 1.2,
+                    duration: 700,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
+        });
     }
 
     createRoom(centerX: number, centerY: number, openings: { top?: boolean, bottom?: boolean, left?: boolean, right?: boolean }) {
@@ -238,7 +322,28 @@ export default class GameScene extends Phaser.Scene {
 
     bulletHitEnemy(bullet, enemy) {
         bullet.destroy();
-        enemy.destroy();
+        const isDead = enemy.takeDamage(50); // Предполагаем, что урон от пули 50
+        if (isDead) {
+            const roomId = enemy.getData('roomId');
+            if (roomId) {
+                this.checkRoomCompletion(roomId);
+            }
+        }
+    }
+
+    playerHitByEnemy(player, enemy) {
+        if (this.player.isInvulnerable()) return;
+
+        this.player.takeDamage(10);
+        const uiScene = this.scene.get('UIScene') as UIScene;
+        if (uiScene) {
+            uiScene.updateHP(this.player.health);
+        }
+    }
+
+    private startDialog(title: string, text: string, onComplete: () => void) {
+        this.scene.launch('DialogScene', { title, text, onComplete });
+        this.scene.pause('GameScene');
     }
 
     update(time: number, delta: number) {
@@ -266,6 +371,35 @@ export default class GameScene extends Phaser.Scene {
             } else {
                 this.crosshair.clearTint();
             }
+        }
+
+        const uiScene = this.scene.get('UIScene') as UIScene;
+        if (uiScene) {
+            uiScene.updateHP(this.player.health);
+        }
+
+        const minibossRoom = this.rooms.find(r => r.id === 'miniboss_room');
+        if (minibossRoom && !minibossRoom.isCleared && this.player.y < minibossRoom.y + minibossRoom.height / 2) {
+            minibossRoom.isCleared = true; // prevent re-triggering
+            this.startDialog('Абай', 'СДЕЛАЙ ДОМАШКУ ПО БЭКУ, НАУЧИСЬ FASTAPI И ПОТОМ ТОЛЬКО ПРИХОДИ.', () => {
+                this.scene.resume('GameScene');
+                const boss = new Enemy(this, minibossRoom.x, minibossRoom.y, this.player);
+                boss.setTexture('abai');
+                boss.setData('roomId', minibossRoom.id);
+                this.enemies.add(boss);
+            });
+        }
+
+        const bossRoom = this.rooms.find(r => r.id === 'boss_room');
+        if (bossRoom && !bossRoom.isCleared && this.player.y < bossRoom.y + bossRoom.height / 2) {
+            bossRoom.isCleared = true; // prevent re-triggering
+            this.startDialog('Диана', 'Ты хочешь работать над проектом? А где ты был на daily stand-up в среду?', () => {
+                this.scene.resume('GameScene');
+                const boss = new Enemy(this, bossRoom.x, bossRoom.y, this.player);
+                boss.setTexture('diana');
+                boss.setData('roomId', bossRoom.id);
+                this.enemies.add(boss);
+            });
         }
     }
 }

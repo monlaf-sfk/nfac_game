@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import Weapon from './Weapon';
 import GameScene from '../scenes/GameScene';
+import UIScene from '../scenes/UIScene';
 
 type ExtendedCursorKeys = Phaser.Types.Input.Keyboard.CursorKeys & {
     W?: Phaser.Input.Keyboard.Key;
@@ -14,13 +15,18 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     private speed = 200;
     private weapon: Weapon | null = null;
     private spaceBar: Phaser.Input.Keyboard.Key;
+    public health = 100; // Добавляем здоровье игроку
+    private invulnerableUntil = 0;
 
     constructor(scene: Phaser.Scene, x: number, y: number, texture: string) {
         super(scene, x, y, texture);
         scene.add.existing(this);
         scene.physics.add.existing(this);
         this.setCollideWorldBounds(true);
+        this.setDepth(1); // Устанавливаем глубину, чтобы игрок был поверх пола
         this.setScale(0.03); // <-- МАСШТАБИРОВАНИЕ. Измените 0.25 на другое значение (например, 0.5)
+        this.setOrigin(0.5, 0.5);
+        this.refreshBody();
 
         this.cursors = this.scene.input.keyboard!.createCursorKeys();
         
@@ -37,6 +43,32 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         }
         this.spaceBar = this.scene.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.createAnimations(texture);
+    }
+
+    isInvulnerable(): boolean {
+        return this.scene.time.now < this.invulnerableUntil;
+    }
+
+    takeDamage(damage: number) {
+        if (this.isInvulnerable()) return;
+
+        this.health -= damage;
+        this.invulnerableUntil = this.scene.time.now + 1000; // 1 second of invulnerability
+        const uiScene = this.scene.scene.get('UIScene') as UIScene;
+        if (uiScene) {
+            uiScene.updateHP(this.health);
+        }
+        if (this.health <= 0) {
+            this.scene.scene.start('GameOverScene');
+        }
+        
+        this.scene.tweens.add({
+            targets: this,
+            alpha: 0.5,
+            duration: 100,
+            yoyo: true,
+            repeat: 5
+        });
     }
 
     createAnimations(texture: string) {
