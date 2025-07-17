@@ -153,11 +153,11 @@ export default class Level2Scene extends Phaser.Scene {
             if (roomId === 'miniboss') {
                 this.openDoor('miniboss_door_1');
                 this.openDoor('miniboss_exit_door');
+                this.openDoor('boss_door_1');
             }
             if (roomId === 'boss') {
                 this.openDoor('boss_exit_door');
-                const friend = this.physics.add.sprite(room.x + 50, room.y, 'almas').setScale(0.15).setInteractive();
-                friend.anims.play('almas_anim');
+                this.spawnComputer(room.x, room.y);
             }
         }
     }
@@ -313,10 +313,6 @@ export default class Level2Scene extends Phaser.Scene {
         if (isDead) {
             const roomId = enemySprite.getData('roomId');
             this.checkRoomCompletion(roomId);
-
-            if (roomId === 'boss' && (enemy as Enemy).texture.key === 'arman') {
-                this.spawnComputer((enemy.body as Phaser.Physics.Arcade.Body).x, (enemy.body as Phaser.Physics.Arcade.Body).y);
-            }
         }
     }
 
@@ -329,7 +325,7 @@ export default class Level2Scene extends Phaser.Scene {
 
     interactWithComputer() {
         if (this.computer) {
-            this.scene.launch('BackendActivationScene');
+            this.scene.launch('FrontendActivationScene');
             this.scene.pause();
         }
     }
@@ -343,18 +339,6 @@ export default class Level2Scene extends Phaser.Scene {
         this.scene.pause('Level2Scene');
         this.scene.launch('DialogScene', { dialogue, onComplete });
         this.scene.bringToTop('DialogScene');
-    }
-
-    triggerBoss(room: Room) {
-        room.isBossTriggered = true;
-        this.openDoor('boss_door_1');
-        this.placeDoor(room.x, room.y + room.height / 2 - 32, 'boss_exit_door', false); // Close door in front
-        
-        const boss = new Enemy(this, room.x, room.y - 100, this.player);
-        boss.setTexture('arman');
-        boss.setData('roomId', room.id);
-        this.enemies.add(boss);
-        boss.setScale(0.2);
     }
 
     update(time: number, delta: number) {
@@ -400,12 +384,37 @@ export default class Level2Scene extends Phaser.Scene {
                 this.enemies.add(boss);
                 boss.setScale(0.03);
                 boss.health = 500;
+                if (boss.body) {
+                    boss.body.setSize(boss.width, boss.height);
+                }
             });
         }
 
         const bossRoom = this.rooms.find(r => r.id === 'boss')!;
         if (!bossRoom.isBossTriggered && minibossRoom.isCleared && this.player.y < bossRoom.y + bossRoom.height / 2 && this.player.y > bossRoom.y - bossRoom.height/2 && this.player.x > bossRoom.x - bossRoom.width/2 && this.player.x < bossRoom.x + bossRoom.width/2) {
-            this.triggerBoss(bossRoom);
+            bossRoom.isBossTriggered = true;
+            const asseliyDialogue = [
+                { title: 'Игрок', text: 'Я прошел все испытания и готов к работе над проектом.', portraitKey: playerPortrait },
+                { title: 'Аселия', text: 'Готов? Ты уверен, что понимаешь, что такое "проект"? Это не просто код, это ответственность. Ты должен быть готов к ревью 24/7.', portraitKey: 'dialogue_asseliy' },
+                { title: 'Игрок', text: 'Я готов, я все сделал.', portraitKey: playerPortrait },
+                { title: 'Аселия', text: 'Докажи. Покажи мне, что твой код так же хорош, как и твоя уверенность.', portraitKey: 'dialogue_asseliy' }
+            ];
+
+            this.startDialog(asseliyDialogue, () => {
+                this.scene.resume('Level2Scene');
+                this.openDoor('boss_door_1');
+                this.placeDoor(bossRoom.x, bossRoom.y + 420, 'boss_exit_door', false); // Close door behind
+                
+                const boss = new Enemy(this, bossRoom.x, bossRoom.y - 100, this.player);
+                boss.setTexture('asseliy');
+                boss.setData('roomId', bossRoom.id);
+                this.enemies.add(boss);
+                boss.setScale(0.03);
+                boss.health = 750;
+                if (boss.body) {
+                    boss.body.setSize(boss.width, boss.height);
+                }
+            });
         }
 
         const friendRoom = this.rooms.find(r => r.id === 'bottom_left')!;
