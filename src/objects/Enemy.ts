@@ -26,9 +26,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     takeDamage(damage: number) {
         this.health -= damage;
-        console.log(`Enemy took damage, health is now: ${this.health}`);
         if (this.health <= 0) {
-            console.log('Enemy health <= 0, destroying enemy.');
             this.destroy();
             return true;
         }

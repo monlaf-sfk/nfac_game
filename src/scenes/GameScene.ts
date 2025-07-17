@@ -134,17 +134,13 @@ export default class GameScene extends Phaser.Scene {
     }
 
     checkRoomCompletion(roomId: string) {
-        console.log(`Checking completion for room: ${roomId}`);
         const room = this.rooms.find(r => r.id === roomId);
         if (!room || room.isCleared) {
-            console.log(`Room ${roomId} is already cleared or does not exist.`);
             return;
         }
 
         const remainingEnemies = this.enemies.getChildren().filter(e => e.getData('roomId') === roomId && e.active);
-        console.log(`Remaining enemies in room ${roomId}: ${remainingEnemies.length}`);
         if (remainingEnemies.length === 0) {
-            console.log(`Room ${roomId} is cleared, spawning coins.`);
             room.isCleared = true;
             this.spawnCoins(room);
         }
@@ -321,13 +317,11 @@ export default class GameScene extends Phaser.Scene {
     }
 
     bulletHitEnemy(bullet, enemy) {
+        const roomId = enemy.getData('roomId'); // Получаем ID комнаты ДО уничтожения врага
         bullet.destroy();
-        const isDead = enemy.takeDamage(50); // Предполагаем, что урон от пули 50
-        if (isDead) {
-            const roomId = enemy.getData('roomId');
-            if (roomId) {
-                this.checkRoomCompletion(roomId);
-            }
+        const isDead = enemy.takeDamage(50);
+        if (isDead && roomId) {
+            this.checkRoomCompletion(roomId);
         }
     }
 
