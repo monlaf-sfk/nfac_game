@@ -339,17 +339,10 @@ export default class Level2Scene extends Phaser.Scene {
         this.player.takeDamage(10);
     }
 
-    triggerMiniboss(room: Room) {
-        room.isBossTriggered = true;
-        this.openDoor('miniboss_door_1'); // Open door behind
-        this.placeDoor(room.x, room.y + room.height / 2 - 32, 'miniboss_exit_door', true); // Close door in front
-
-        const boss = new Enemy(this, room.x, room.y, this.player);
-        boss.setTexture('bahredin');
-        boss.setData('roomId', room.id);
-        this.enemies.add(boss);
-        boss.setScale(0.03);
-        boss.health = 500;
+    private startDialog(dialogue: { title: string; text: string; portraitKey: string }[], onComplete: () => void) {
+        this.scene.pause('Level2Scene');
+        this.scene.launch('DialogScene', { dialogue, onComplete });
+        this.scene.bringToTop('DialogScene');
     }
 
     triggerBoss(room: Room) {
@@ -384,9 +377,30 @@ export default class Level2Scene extends Phaser.Scene {
             }
         }
 
+        const playerPortrait = this.gender === 'male' ? 'dialogue_boy_player' : 'dialogue_girl_player';
+
         const minibossRoom = this.rooms.find(r => r.id === 'miniboss')!;
         if (!minibossRoom.isBossTriggered && this.player.x > minibossRoom.x - minibossRoom.width / 2 && this.player.x < minibossRoom.x + minibossRoom.width/2 && this.player.y > minibossRoom.y - minibossRoom.height/2 && this.player.y < minibossRoom.y + minibossRoom.height/2) {
-            this.triggerMiniboss(minibossRoom);
+            minibossRoom.isBossTriggered = true;
+            const bahredinDialogue = [
+                { title: 'Игрок', text: 'Бахредин, я готов показать тебе свой дизайн.', portraitKey: playerPortrait },
+                { title: 'Бахредин', text: 'Дизайн? Ты думаешь, пара картинок в Figma — это дизайн? Где твои user flow, где CJM? Ты хотя бы с пользователями говорил?', portraitKey: 'dialogue_bahredin' },
+                { title: 'Игрок', text: 'Я... я думал, это не так важно на старте.', portraitKey: playerPortrait },
+                { title: 'Бахредин', text: 'Не важно?! Ты строишь дом без фундамента! Иди и не возвращайся, пока у тебя не будет полноценного исследования. А пока — докажи, что ты хотя бы можешь защитить свои "идеи"!', portraitKey: 'dialogue_bahredin' }
+            ];
+
+            this.startDialog(bahredinDialogue, () => {
+                this.scene.resume('Level2Scene');
+                this.openDoor('miniboss_door_1'); // Open door behind
+                this.placeDoor(minibossRoom.x, minibossRoom.y + minibossRoom.height / 2 - 32, 'miniboss_exit_door', true); // Close door in front
+        
+                const boss = new Enemy(this, minibossRoom.x, minibossRoom.y, this.player);
+                boss.setTexture('bahredin');
+                boss.setData('roomId', minibossRoom.id);
+                this.enemies.add(boss);
+                boss.setScale(0.03);
+                boss.health = 500;
+            });
         }
 
         const bossRoom = this.rooms.find(r => r.id === 'boss')!;

@@ -366,6 +366,7 @@ export default class GameScene extends Phaser.Scene {
     private startDialog(dialogue: { title: string; text: string; portraitKey: string }[], onComplete: () => void) {
         this.scene.pause('GameScene');
         this.scene.launch('DialogScene', { dialogue, onComplete });
+        this.scene.bringToTop('DialogScene');
     }
 
     update(time: number, delta: number) {
