@@ -1,14 +1,21 @@
 import Phaser from 'phaser';
 import Player from '../objects/Player';
 import UIScene from './UIScene';
+import Weapon from '../objects/Weapon';
+import Enemy from '../objects/Enemy';
+import Bullet from '../objects/Bullet';
 
 export default class GameScene extends Phaser.Scene {
     public player!: Player;
     private gender!: string;
     private walls!: Phaser.Physics.Arcade.StaticGroup;
     private coins!: Phaser.Physics.Arcade.Group;
+    private weapons!: Phaser.Physics.Arcade.Group;
+    private enemies!: Phaser.Physics.Arcade.Group;
+    private bullets!: Phaser.Physics.Arcade.Group;
     private doors!: Phaser.Physics.Arcade.StaticGroup;
     private coinCount = 0;
+    public crosshair!: Phaser.GameObjects.Image;
 
     constructor() {
         super('GameScene');
@@ -23,6 +30,12 @@ export default class GameScene extends Phaser.Scene {
 
         this.walls = this.physics.add.staticGroup();
         this.coins = this.physics.add.group();
+        this.weapons = this.physics.add.group();
+        this.enemies = this.physics.add.group();
+        this.bullets = this.physics.add.group({
+            classType: Bullet,
+            runChildUpdate: true
+        });
         this.doors = this.physics.add.staticGroup();
         this.createWorld();
         
@@ -32,9 +45,18 @@ export default class GameScene extends Phaser.Scene {
         this.physics.add.collider(this.player, this.walls);
         this.physics.add.collider(this.player, this.doors);
         this.physics.add.overlap(this.player, this.coins, this.collectCoin, undefined, this);
+        this.physics.add.overlap(this.player, this.weapons, this.pickUpWeapon, undefined, this);
+        this.physics.add.collider(this.player, this.enemies);
+        this.physics.add.collider(this.enemies, this.walls);
+        this.physics.add.collider(this.bullets, this.walls, this.bulletHitWall, undefined, this);
+        this.physics.add.collider(this.bullets, this.enemies, this.bulletHitEnemy, undefined, this);
 
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
         this.cameras.main.setBounds(0, 0, 5000, 5000);
+
+        this.crosshair = this.add.image(0, 0, 'crosshair');
+        this.crosshair.setDepth(100); // Убедимся, что прицел поверх всего
+        this.input.setDefaultCursor('none'); // Скрываем системный курсор
         
         this.scene.launch('UIScene');
         this.scene.launch('MinimapScene');
@@ -69,6 +91,9 @@ export default class GameScene extends Phaser.Scene {
         // 2. Теперь, когда пол на месте, размещаем монеты
         const promoRooms = [startRoom, defRoom, leftRoom, leftDownRoom, rightRoom];
         promoRooms.forEach(room => this.placeCoinInRoom(room.x, room.y));
+        
+        this.weapons.add(new Weapon(this, startRoom.x, startRoom.y, 'ak-47'));
+        this.enemies.add(new Enemy(this, defRoom.x, defRoom.y));
 
         // Размещаем двери
         this.placeDoor(rightRoom.x, rightRoom.y - 320 - 64, 'miniboss'); // Дверь к мини-боссу
@@ -188,7 +213,59 @@ export default class GameScene extends Phaser.Scene {
         doorsToDestroy.forEach(door => door.destroy());
     }
 
+    pickUpWeapon(player, weapon) {
+        const weaponInstance = weapon as Weapon;
+        this.weapons.remove(weaponInstance, false);
+
+        (player as Player).setWeapon(weaponInstance);
+        
+        // Отключаем физическое тело, чтобы больше не было столкновений
+        if (weaponInstance.body) {
+            weaponInstance.body.enable = false;
+        }
+    }
+
+    fireBullet(x: number, y: number, angle: number) {
+        const bullet = this.bullets.get(x, y) as Bullet;
+        if (bullet) {
+            bullet.fire(x, y, angle);
+        }
+    }
+
+    bulletHitWall(bullet, wall) {
+        bullet.destroy();
+    }
+
+    bulletHitEnemy(bullet, enemy) {
+        bullet.destroy();
+        enemy.destroy();
+    }
+
     update(time: number, delta: number) {
-        this.player.update();
+        this.player.update(time, delta);
+        this.enemies.getChildren().forEach(enemy => (enemy as Enemy).update());
+
+        if (this.crosshair) {
+            const pointer = this.input.activePointer;
+            let targetX = pointer.worldX;
+            let targetY = pointer.worldY;
+
+            let onEnemy = false;
+            this.enemies.getChildren().forEach(enemy => {
+                const enemySprite = enemy as Phaser.Physics.Arcade.Sprite;
+                if (Phaser.Geom.Rectangle.Contains(enemySprite.getBounds(), pointer.worldX, pointer.worldY)) {
+                    targetX = enemySprite.x;
+                    targetY = enemySprite.y;
+                    onEnemy = true;
+                }
+            });
+
+            this.crosshair.setPosition(targetX, targetY);
+            if (onEnemy) {
+                this.crosshair.setTint(0xff0000);
+            } else {
+                this.crosshair.clearTint();
+            }
+        }
     }
 }

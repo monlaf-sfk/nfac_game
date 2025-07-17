@@ -11,7 +11,11 @@ export default class Bullet extends Phaser.Physics.Arcade.Sprite {
 
     fire(x: number, y: number, angle: number) {
         this.setPosition(x, y);
-        this.scene.physics.velocityFromAngle(angle, this.speed, this.body.velocity);
+        this.setRotation(angle);
+        if (this.body) {
+            const angleInDegrees = Phaser.Math.RadToDeg(angle);
+            this.scene.physics.velocityFromAngle(angleInDegrees, this.speed, this.body.velocity);
+        }
     }
 
     update(time: number, delta: number) {
