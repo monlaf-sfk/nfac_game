@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 
 export default class BackendActivationScene extends Phaser.Scene {
+    private enterKey?: Phaser.Input.Keyboard.Key;
+    private spaceKey?: Phaser.Input.Keyboard.Key;
+
     constructor() {
         super('BackendActivationScene');
     }
@@ -9,26 +12,32 @@ export default class BackendActivationScene extends Phaser.Scene {
         const centerX = this.cameras.main.width / 2;
         const centerY = this.cameras.main.height / 2;
 
-        const bg = this.add.image(centerX, centerY, 'backend_question');
-        bg.setScale(0.5); // Scale the image to fit better
+        this.cameras.main.setBackgroundColor('#34d3e8'); // Light blue background
 
-        // Adjusted button positions and sizes for the scaled image
-        const yesButton = this.add.zone(centerX - 75, centerY + 40, 60, 30).setInteractive({ useHandCursor: true });
-        yesButton.on('pointerdown', () => {
+        this.add.text(centerX, centerY - 50, 'Activate backend?', {
+            fontSize: '48px',
+            color: '#000000',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        this.add.text(centerX, centerY + 50, 'Press Enter or Space to Activate', {
+            fontSize: '24px',
+            color: '#000000'
+        }).setOrigin(0.5);
+
+        if (this.input.keyboard) {
+            this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+            this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        }
+    }
+
+    update() {
+        if ((this.enterKey && Phaser.Input.Keyboard.JustDown(this.enterKey)) ||
+            (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey))) {
             this.scene.stop('GameScene');
             this.scene.stop('UIScene');
             this.scene.stop('MinimapScene');
-            this.scene.stop('BackendActivationScene');
             this.scene.start('GameOverScene', { message: 'Level Complete! Backend Activated!' });
-        });
-
-        const noButton = this.add.zone(centerX + 15, centerY + 40, 60, 30).setInteractive({ useHandCursor: true });
-        noButton.on('pointerdown', () => {
-            this.scene.stop('GameScene');
-            this.scene.stop('UIScene');
-            this.scene.stop('MinimapScene');
-            this.scene.stop('BackendActivationScene');
-            this.scene.start('GameOverScene', { message: 'Level Complete! Backend remains dormant.' });
-        });
+        }
     }
 } 

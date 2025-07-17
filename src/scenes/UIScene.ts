@@ -100,7 +100,7 @@ export default class UIScene extends Phaser.Scene {
         healthButton.style.cursor = 'pointer';
         healthButton.addEventListener('click', () => {
             gameScene.player.health += 25;
-            this.updateHp(gameScene.player.health);
+            this.updateHP(gameScene.player.health);
         });
 
         container.appendChild(document.createElement('br'));
