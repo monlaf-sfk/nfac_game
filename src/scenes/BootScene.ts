@@ -35,6 +35,10 @@ export default class BootScene extends Phaser.Scene {
         // Friends
         this.load.image('almass', 'assets/friends/almass.png');
 
+        // Objects
+        this.load.image('pc', 'assets/object/pc.png');
+        this.load.image('backend_question', 'assets/object/backend.png');
+
         // Загрузка кадров для врага
         for (let i = 1; i <= 2; i++) {
             this.load.image(`spirit_stay_${i}`, `assets/enemies/spirit_stay_${i}.png`);

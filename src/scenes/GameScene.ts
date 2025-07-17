@@ -33,6 +33,7 @@ export default class GameScene extends Phaser.Scene {
     public crosshair!: Phaser.GameObjects.Image;
     private rooms: Room[] = [];
     public bulletSpeed = 400;
+    private computer?: Phaser.Physics.Arcade.Sprite;
 
     constructor() {
         super('GameScene');
@@ -328,6 +329,25 @@ export default class GameScene extends Phaser.Scene {
         const isDead = enemy.takeDamage(50);
         if (isDead && roomId) {
             this.checkRoomCompletion(roomId);
+
+            const bossRoom = this.rooms.find(r => r.id === 'boss_room');
+            if (bossRoom && roomId === bossRoom.id && enemy.texture.key === 'diana') {
+                this.spawnComputer(bossRoom.x, bossRoom.y);
+            }
+        }
+    }
+
+    spawnComputer(x: number, y: number) {
+        this.computer = this.physics.add.sprite(x, y, 'pc');
+        this.computer.setScale(0.1);
+        this.computer.setInteractive();
+        this.physics.add.overlap(this.player, this.computer, this.interactWithComputer, undefined, this);
+    }
+
+    interactWithComputer() {
+        if (this.computer) {
+            this.scene.launch('BackendActivationScene');
+            this.scene.pause('GameScene');
         }
     }
 
@@ -419,7 +439,9 @@ export default class GameScene extends Phaser.Scene {
                 boss.health = 500;
                 boss.setData('roomId', minibossRoom.id);
                 this.enemies.add(boss);
-                boss.body.setSize(boss.width, boss.height);
+                if (boss.body) {
+                    boss.body.setSize(boss.width, boss.height);
+                }
             });
         }
 
@@ -442,7 +464,9 @@ export default class GameScene extends Phaser.Scene {
                 boss.health = 1000;
                 boss.setData('roomId', bossRoom.id);
                 this.enemies.add(boss);
-                boss.body.setSize(boss.width, boss.height);
+                if (boss.body) {
+                    boss.body.setSize(boss.width, boss.height);
+                }
             });
         }
     }

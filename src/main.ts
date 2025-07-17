@@ -6,6 +6,7 @@ import GameOverScene from './scenes/GameOverScene';
 import UIScene from './scenes/UIScene';
 import MinimapScene from './scenes/MinimapScene';
 import DialogScene from './scenes/DialogScene';
+import BackendActivationScene from './scenes/BackendActivationScene';
 
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
@@ -18,7 +19,7 @@ const config: Phaser.Types.Core.GameConfig = {
             debug: true
         }
     },
-    scene: [BootScene, MenuScene, GameScene, UIScene, MinimapScene, GameOverScene, DialogScene]
+    scene: [BootScene, MenuScene, GameScene, UIScene, MinimapScene, GameOverScene, DialogScene, BackendActivationScene]
 };
 
 new Phaser.Game(config);
