@@ -37,7 +37,7 @@ export default class BackendActivationScene extends Phaser.Scene {
             this.scene.stop('GameScene');
             this.scene.stop('UIScene');
             this.scene.stop('MinimapScene');
-            this.scene.start('GameOverScene', { message: 'Level Complete! Backend Activated!' });
+            this.scene.start('FakeLoadingScene', { nextScene: 'Level2Scene', gender: this.scene.get('GameScene').player.texture.key.startsWith('boy') ? 'boy' : 'girl' });
         }
     }
 } 

@@ -1,6 +1,10 @@
 import Phaser from 'phaser';
 
 export default class MenuScene extends Phaser.Scene {
+    private boyButton!: Phaser.GameObjects.Image;
+    private girlButton!: Phaser.GameObjects.Image;
+    private titleText!: Phaser.GameObjects.Text;
+
     constructor() {
         super('MenuScene');
     }
@@ -9,60 +13,44 @@ export default class MenuScene extends Phaser.Scene {
         const centerX = this.cameras.main.width / 2;
         const centerY = this.cameras.main.height / 2;
 
-        this.add.text(centerX, centerY - 150, 'nFactorial Soul Knight', {
+        this.titleText = this.add.text(centerX, 150, 'Choose Your Character', {
             fontSize: '48px',
-            color: '#ffffff',
-            fontStyle: 'bold'
+            color: '#fff',
         }).setOrigin(0.5);
 
-        this.createMenuButton('Start', centerY, () => {
-            // This can be expanded to show gender selection first
-            this.showGenderSelection();
-        });
+        this.boyButton = this.add.image(centerX - 150, centerY, 'boy_walk_1').setScale(0.1).setInteractive({ useHandCursor: true });
+        this.girlButton = this.add.image(centerX + 150, centerY, 'girl_walk_1').setScale(0.1).setInteractive({ useHandCursor: true });
+
+        this.boyButton.on('pointerdown', () => this.showLevelSelection('boy'));
+        this.girlButton.on('pointerdown', () => this.showLevelSelection('girl'));
     }
 
-    showGenderSelection() {
-        // Clear existing buttons
-        this.children.removeAll();
+    showLevelSelection(gender: string) {
         const centerX = this.cameras.main.width / 2;
         const centerY = this.cameras.main.height / 2;
 
-        // Add title again
-        this.add.text(centerX, centerY - 150, 'nFactorial Soul Knight', {
-            fontSize: '48px',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
+        this.boyButton.destroy();
+        this.girlButton.destroy();
+        this.titleText.destroy();
 
-        this.add.text(centerX, centerY - 50, 'Choose your gender', {
-            fontSize: '24px',
-            color: '#dddddd'
-        }).setOrigin(0.5);
-
-        this.createMenuButton('Male', centerY + 50, () => {
-            this.scene.start('GameScene', { gender: 'male' });
-        });
-
-        this.createMenuButton('Female', centerY + 120, () => {
-            this.scene.start('GameScene', { gender: 'female' });
-        });
-    }
-
-    createMenuButton(text: string, y: number, onClick: () => void) {
-        const button = this.add.text(this.cameras.main.width / 2, y, text, {
+        const level1Button = this.add.text(centerX, centerY - 50, 'Start Level 1', {
             fontSize: '32px',
             color: '#fff',
-        }).setOrigin(0.5).setPadding(10);
+            backgroundColor: '#333'
+        }).setPadding(10).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        button.setInteractive({ useHandCursor: true });
-
-        button.on('pointerover', () => {
-            button.setStyle({ fill: '#ffc300' });
-        });
-        button.on('pointerout', () => {
-            button.setStyle({ fill: '#fff' });
+        level1Button.on('pointerdown', () => {
+            this.scene.start('GameScene', { gender });
         });
 
-        button.on('pointerdown', onClick);
+        const level2Button = this.add.text(centerX, centerY + 50, 'Start Level 2', {
+            fontSize: '32px',
+            color: '#fff',
+            backgroundColor: '#333'
+        }).setPadding(10).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        level2Button.on('pointerdown', () => {
+            this.scene.start('Level2Scene', { gender });
+        });
     }
 }

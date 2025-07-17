@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
 import GameScene from './GameScene';
+import Level2Scene from './Level2Scene';
 
 export default class MinimapScene extends Phaser.Scene {
     private mapGraphics!: Phaser.GameObjects.Graphics;
     private playerMarker!: Phaser.GameObjects.Graphics;
-    private gameScene!: GameScene;
+    private gameScene!: GameScene | Level2Scene;
     private worldSize = 5000;
     private mapSize = 200;
     private mapScale: number;
@@ -26,8 +27,11 @@ export default class MinimapScene extends Phaser.Scene {
         this.mapScale = this.mapSize / this.worldSize;
     }
 
+    init(data: { gameScene: GameScene | Level2Scene }) {
+        this.gameScene = data.gameScene;
+    }
+
     create() {
-        this.gameScene = this.scene.get('GameScene') as GameScene;
         const mapX = this.cameras.main.width - this.mapSize - 10;
         const mapY = 10;
 

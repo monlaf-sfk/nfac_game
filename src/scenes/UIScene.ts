@@ -1,13 +1,19 @@
 import Phaser from 'phaser';
 import GameScene from './GameScene';
+import Level2Scene from './Level2Scene';
 
 export default class UIScene extends Phaser.Scene {
     private scoreText!: Phaser.GameObjects.Text;
     private hpText!: Phaser.GameObjects.Text;
     private coinText!: Phaser.GameObjects.Text;
+    private parentScene!: GameScene | Level2Scene;
 
     constructor() {
         super({ key: 'UIScene', active: false });
+    }
+
+    init(data: { parentScene: GameScene | Level2Scene }) {
+        this.parentScene = data.parentScene;
     }
 
     create() {
@@ -32,7 +38,7 @@ export default class UIScene extends Phaser.Scene {
     }
 
     createDebugMenu() {
-        const gameScene = this.scene.get('GameScene') as GameScene;
+        const gameScene = this.parentScene;
 
         if (!gameScene || !gameScene.player) {
             this.time.delayedCall(100, this.createDebugMenu, [], this);

@@ -59,7 +59,7 @@ export default class GameScene extends Phaser.Scene {
         this.doors = this.physics.add.staticGroup();
 
         // Сначала создаем игрока
-        const playerTexture = this.gender === 'male' ? 'boy_walk_1' : 'girl_walk_1';
+        const playerTexture = this.gender === 'boy' ? 'boy_walk_1' : 'girl_walk_1';
         this.player = new Player(this, 2500, 2500, playerTexture);
 
         // Теперь создаем мир, который зависит от игрока
@@ -81,8 +81,10 @@ export default class GameScene extends Phaser.Scene {
         this.crosshair.setDepth(100); // Убедимся, что прицел поверх всего
         this.input.setDefaultCursor('none'); // Скрываем системный курсор
         
-        this.scene.launch('UIScene');
-        this.scene.launch('MinimapScene');
+        this.scene.launch('UIScene', { parentScene: this });
+        this.scene.launch('MinimapScene', { gameScene: this });
+        this.scene.bringToTop('UIScene');
+        this.scene.bringToTop('MinimapScene');
     }
 
     createWorld() {
@@ -367,32 +369,18 @@ export default class GameScene extends Phaser.Scene {
     }
 
     update(time: number, delta: number) {
-        if (!this.player || !this.player.active) {
-            return;
-        }
         this.player.update(time, delta);
         this.enemies.getChildren().forEach(enemy => (enemy as Enemy).update());
 
         if (this.crosshair) {
             const pointer = this.input.activePointer;
-            let targetX = pointer.worldX;
-            let targetY = pointer.worldY;
+            this.crosshair.setPosition(pointer.worldX, pointer.worldY);
 
-            let onEnemy = false;
-            this.enemies.getChildren().forEach(enemy => {
-                const enemySprite = enemy as Phaser.Physics.Arcade.Sprite;
-                if (Phaser.Geom.Rectangle.Contains(enemySprite.getBounds(), pointer.worldX, pointer.worldY)) {
-                    targetX = enemySprite.x;
-                    targetY = enemySprite.y;
-                    onEnemy = true;
+            if (this.player.weapon) {
+                this.player.weapon.updateAttached(this.player);
+                if (pointer.isDown) {
+                    this.player.weapon.fire(this.player, time);
                 }
-            });
-
-            this.crosshair.setPosition(targetX, targetY);
-            if (onEnemy) {
-                this.crosshair.setTint(0xff0000);
-            } else {
-                this.crosshair.clearTint();
             }
         }
 

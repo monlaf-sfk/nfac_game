@@ -4,11 +4,12 @@ import GameScene from '../scenes/GameScene';
 export default class Weapon extends Phaser.Physics.Arcade.Sprite {
     private lastFired = 0;
     public fireRate = 500;
-    private gameScene: GameScene;
+    private gameScene: Phaser.Scene;
+    private owner: Phaser.Physics.Arcade.Sprite | null = null;
 
     constructor(scene: Phaser.Scene, x: number, y: number, texture: string) {
         super(scene, x, y, texture);
-        this.gameScene = scene as GameScene;
+        this.gameScene = scene;
         this.scene.add.existing(this);
         this.scene.physics.add.existing(this);
         this.setScale(0.02);
@@ -16,6 +17,13 @@ export default class Weapon extends Phaser.Physics.Arcade.Sprite {
         
         if (this.body) {
             (this.body as Phaser.Physics.Arcade.Body).setEnable(false);
+        }
+    }
+
+    public setOwner(owner: Phaser.Physics.Arcade.Sprite) {
+        this.owner = owner;
+        if (this.body) {
+            (this.body as Phaser.Physics.Arcade.Body).setEnable(true);
         }
     }
 
@@ -27,22 +35,27 @@ export default class Weapon extends Phaser.Physics.Arcade.Sprite {
             const muzzleX = this.x + muzzleOffset * Math.cos(angle);
             const muzzleY = this.y + muzzleOffset * Math.sin(angle);
 
-            this.gameScene.fireBullet(muzzleX, muzzleY, angle);
+            (this.gameScene as any).fireBullet(muzzleX, muzzleY, angle);
             this.lastFired = time + this.fireRate;
         }
     }
 
     public updateAttached(owner: Phaser.Physics.Arcade.Sprite): void {
+        const pointer = this.gameScene.input.activePointer;
+        const camera = this.gameScene.cameras.main;
+        const worldX = pointer.x + camera.scrollX;
+        const worldY = pointer.y + camera.scrollY;
+
         const angle = Phaser.Math.Angle.Between(
             owner.x,
             owner.y,
-            this.gameScene.crosshair.x,
-            this.gameScene.crosshair.y
+            worldX,
+            worldY
         );
 
         this.setRotation(angle);
         this.setPosition(owner.x, owner.y);
 
-        this.setFlipY(this.gameScene.crosshair.x < owner.x);
+        this.setFlipY(worldX < owner.x);
     }
 } 
