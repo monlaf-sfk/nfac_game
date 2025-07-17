@@ -93,9 +93,11 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     update() {
-        if (!this.active || !this.player.active || this.isAttacking || !this.body) {
+        const isBoss = this.texture.key === 'abai' || this.texture.key === 'diana';
+
+        if (!this.active || !this.player.active || (!isBoss && this.isAttacking) || !this.body) {
             this.setVelocityX(0);
-            if (!this.isAttacking) {
+            if (!isBoss && !this.isAttacking) {
                 this.anims.play('spirit_stay_anim', true);
             }
             return;
@@ -104,18 +106,26 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
         const distance = Phaser.Math.Distance.Between(this.x, this.y, this.player.x, this.player.y);
 
         if (distance <= this.attackRange) {
-            this.attack();
+            if (!isBoss) {
+                this.attack();
+            } else {
+                this.setVelocity(0, 0);
+            }
         } else if (distance <= this.detectionRange) {
             // Движение к игроку
             const angle = Phaser.Math.Angle.Between(this.x, this.y, this.player.x, this.player.y);
             this.scene.physics.velocityFromRotation(angle, this.speed, this.body.velocity);
             
-            this.anims.play('spirit_walk_anim', true);
+            if (!isBoss) {
+                this.anims.play('spirit_walk_anim', true);
+            }
             this.flipX = this.body.velocity.x < 0;
         } else {
             // Стоим на месте, если игрок далеко
             this.setVelocity(0, 0);
-            this.anims.play('spirit_stay_anim', true);
+            if (!isBoss) {
+                this.anims.play('spirit_stay_anim', true);
+            }
         }
     }
 }

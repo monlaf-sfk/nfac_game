@@ -4,6 +4,7 @@ import UIScene from './UIScene';
 import Weapon from '../objects/Weapon';
 import Enemy from '../objects/Enemy';
 import Bullet from '../objects/Bullet';
+import { PLAYER_SPEED, ENEMY_SPEED } from '../utils/constants';
 
 interface Room {
     x: number;
@@ -15,6 +16,8 @@ interface Room {
     coins: { name: string, count: number }[];
     isCleared: boolean;
     openings: { top?: boolean, bottom?: boolean, left?: boolean, right?: boolean };
+    isBossTriggered?: boolean;
+    isFriendTriggered?: boolean;
 }
 
 export default class GameScene extends Phaser.Scene {
@@ -29,6 +32,7 @@ export default class GameScene extends Phaser.Scene {
     private coinCount = 0;
     public crosshair!: Phaser.GameObjects.Image;
     private rooms: Room[] = [];
+    public bulletSpeed = 400;
 
     constructor() {
         super('GameScene');
@@ -86,10 +90,10 @@ export default class GameScene extends Phaser.Scene {
 
         this.rooms = [
             { id: 'room1', x: 2500, y: 2500, ...roomSize, enemies: [{ type: 'spirit', count: 2 }, { type: 'cleaner', count: 1 }], coins: [{ name: 'coin_link', count: 1 }], isCleared: false, openings: { left: true, right: true, bottom: true } },
-            { id: 'room2', x: 1476, y: 2500, ...roomSize, enemies: [{ type: 'spirit', count: 3 }, { type: 'guard', count: 1 }], coins: [{ name: 'coin_inst', count: 1 }, { name: 'coin_threads', count: 1 }], isCleared: false, openings: { right: true, bottom: true } },
-            { id: 'room3', x: 3524, y: 2500, ...roomSize, enemies: [{ type: 'cleaner', count: 2 }, { type: 'spirit', count: 2 }, { type: 'guard', count: 1 }], coins: [{ name: 'coin_tiktok', count: 1 }, { name: 'coin_twitter', count: 1 }], isCleared: false, openings: { left: true, top: true } },
-            { id: 'miniboss_room', x: 3524, y: 1604, ...roomSize, enemies: [{ type: 'spirit', count: 5 }], coins: [{ name: 'coin_inst', count: 1 }], isCleared: false, openings: { top: true, bottom: true } },
-            { id: 'boss_room', x: 3524, y: 708, ...roomSize, enemies: [{ type: 'spirit', count: 8 }], coins: [{ name: 'coin_link', count: 1 }], isCleared: false, openings: { bottom: true } },
+            { id: 'room2', x: 1476, y: 2500, ...roomSize, enemies: [{ type: 'spirit', count: 3 }, { type: 'guard', count: 1 }], coins: [{ name: 'coin_inst', count: 1 }], isCleared: false, openings: { right: true, bottom: true } },
+            { id: 'room3', x: 3524, y: 2500, ...roomSize, enemies: [{ type: 'cleaner', count: 2 }, { type: 'spirit', count: 2 }, { type: 'guard', count: 1 }], coins: [{ name: 'coin_tiktok', count: 1 }], isCleared: false, openings: { left: true, top: true } },
+            { id: 'miniboss_room', x: 3524, y: 1604, ...roomSize, enemies: [], coins: [], isCleared: false, openings: { top: true, bottom: true }, isBossTriggered: false },
+            { id: 'boss_room', x: 3524, y: 708, ...roomSize, enemies: [], coins: [], isCleared: false, openings: { bottom: true }, isBossTriggered: false },
             { id: 'bottom_left_room', x: 1476, y: bottomRoomY, ...roomSize, enemies: [{ type: 'spirit', count: 3 }], coins: [{ name: 'coin_threads', count: 1 }], isCleared: false, openings: { top: true, right: true } },
             { id: 'bottom_center_room', x: 2500, y: bottomRoomY, ...roomSize, enemies: [{ type: 'spirit', count: 3 }], coins: [{ name: 'coin_twitter', count: 1 }], isCleared: false, openings: { top: true, left: true } }
         ];
@@ -113,6 +117,8 @@ export default class GameScene extends Phaser.Scene {
         this.createVerticalCorridor(room1.y, bottomCenterRoom.y, room1.x);
         this.createVerticalCorridor(room2.y, bottomLeftRoom.y, room2.x);
         this.createHorizontalCorridor(bottomLeftRoom.x, bottomCenterRoom.x, bottomCenterRoom.y);
+
+        this.placeDoor(minibossRoom.x, 2100, 'miniboss_door');
 
         this.weapons.add(new Weapon(this, room1.x, room1.y, 'ak-47'));
 
@@ -277,7 +283,7 @@ export default class GameScene extends Phaser.Scene {
         uiScene.updateCoinCount(this.coinCount);
 
         if (this.coinCount >= 5) {
-            this.openDoor('miniboss');
+            this.openDoor('miniboss_door');
         }
     }
 
@@ -306,9 +312,9 @@ export default class GameScene extends Phaser.Scene {
     }
 
     fireBullet(x: number, y: number, angle: number) {
-        const bullet = this.bullets.get(x, y) as Bullet;
+        const bullet = this.bullets.get(x, y, 'bullet') as Bullet;
         if (bullet) {
-            bullet.fire(x, y, angle);
+            bullet.fire(x, y, angle, this.bulletSpeed);
         }
     }
 
@@ -335,12 +341,15 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
-    private startDialog(title: string, text: string, onComplete: () => void) {
-        this.scene.launch('DialogScene', { title, text, onComplete });
+    private startDialog(dialogue: { title: string; text: string; portraitKey: string }[], onComplete: () => void) {
         this.scene.pause('GameScene');
+        this.scene.launch('DialogScene', { dialogue, onComplete });
     }
 
     update(time: number, delta: number) {
+        if (!this.player || !this.player.active) {
+            return;
+        }
         this.player.update(time, delta);
         this.enemies.getChildren().forEach(enemy => (enemy as Enemy).update());
 
@@ -372,27 +381,68 @@ export default class GameScene extends Phaser.Scene {
             uiScene.updateHP(this.player.health);
         }
 
+        const playerPortrait = this.gender === 'male' ? 'dialogue_boy_player' : 'dialogue_girl_player';
+
+        const almasRoom = this.rooms.find(r => r.id === 'bottom_center_room');
+        const playerBounds = this.player.getBounds();
+        if (almasRoom && !almasRoom.isFriendTriggered && Phaser.Geom.Intersects.RectangleToRectangle(playerBounds, new Phaser.Geom.Rectangle(almasRoom.x - almasRoom.width / 2, almasRoom.y - almasRoom.height / 2, almasRoom.width, almasRoom.height))) {
+            almasRoom.isFriendTriggered = true;
+            const almasDialogue = [
+                { title: 'Игрок', text: 'Алмас, я дошёл почти до финала этажа.', portraitKey: playerPortrait },
+                { title: 'Алмас', text: 'Брат, ты вообще красавчик. Главное — не перегори. Ты ж не GPT, чтобы 24/7.', portraitKey: 'dialogue_almas' },
+                { title: 'Игрок', text: 'Спасибо, стараюсь.', portraitKey: playerPortrait },
+                { title: 'Алмас', text: 'Пей воду, общайся, не забывай про жизнь за пределами лаптопа. Мы тут не просто коды пишем — мы кайфуем.', portraitKey: 'dialogue_almas' },
+                { title: 'Игрок', text: 'Принято. Спасибо за вайб.', portraitKey: playerPortrait },
+                { title: 'Алмас', text: 'Всегда рад. Жми на full power — ты на правильном пути.', portraitKey: 'dialogue_almas' }
+            ];
+            this.startDialog(almasDialogue, () => {
+                this.scene.resume('GameScene');
+            });
+        }
+        
+        // Check for boss triggers
         const minibossRoom = this.rooms.find(r => r.id === 'miniboss_room');
-        if (minibossRoom && !minibossRoom.isCleared && this.player.y < minibossRoom.y + minibossRoom.height / 2) {
-            minibossRoom.isCleared = true; // prevent re-triggering
-            this.startDialog('Абай', 'СДЕЛАЙ ДОМАШКУ ПО БЭКУ, НАУЧИСЬ FASTAPI И ПОТОМ ТОЛЬКО ПРИХОДИ.', () => {
+        if (minibossRoom && !minibossRoom.isBossTriggered && this.player.y < minibossRoom.y + minibossRoom.height / 2 + 100) {
+            minibossRoom.isBossTriggered = true; // prevent re-triggering
+            const abaiDialogue = [
+                { title: 'Игрок', text: 'Я определился с идеей и уже сделал 5 промоушенов, так научи меня бэку и помоги его сделать!', portraitKey: playerPortrait },
+                { title: 'Абай', text: 'СДЕЛАЙ ДОМАШКУ ПО БЭКУ, НАУЧИСЬ FASTAPI И ПОТОМ ТОЛЬКО ПРИХОДИ.', portraitKey: 'dialogue_abai' },
+                { title: 'Игрок', text: 'Я уже всё знаю!', portraitKey: playerPortrait },
+                { title: 'Абай', text: 'ТАК ДОКАЖИ ЖЕ МНЕ!', portraitKey: 'dialogue_abai' }
+            ];
+            this.startDialog(abaiDialogue, () => {
                 this.scene.resume('GameScene');
                 const boss = new Enemy(this, minibossRoom.x, minibossRoom.y, this.player);
+                boss.anims.stop();
                 boss.setTexture('abai');
+                boss.setScale(0.02);
+                boss.health = 500;
                 boss.setData('roomId', minibossRoom.id);
                 this.enemies.add(boss);
+                boss.body.setSize(boss.width, boss.height);
             });
         }
 
         const bossRoom = this.rooms.find(r => r.id === 'boss_room');
-        if (bossRoom && !bossRoom.isCleared && this.player.y < bossRoom.y + bossRoom.height / 2) {
-            bossRoom.isCleared = true; // prevent re-triggering
-            this.startDialog('Диана', 'Ты хочешь работать над проектом? А где ты был на daily stand-up в среду?', () => {
+        if (bossRoom && !bossRoom.isBossTriggered && this.player.y < bossRoom.y + bossRoom.height / 2 + 100) {
+            bossRoom.isBossTriggered = true; // prevent re-triggering
+            const dianaDialogue = [
+                { title: 'Диана', text: 'Ты хочешь работать над проектом? А где ты был на daily stand-up в среду?', portraitKey: 'dialogue_diana' },
+                { title: 'Игрок', text: 'Я кодил ночью, не успел встать. Но всё готово.', portraitKey: playerPortrait },
+                { title: 'Диана', text: 'У нас тут не ночлежка, а инкубатор. Пропуски, тишина в канале, отсутствие активности — ты должен это компенсировать.', portraitKey: 'dialogue_diana' },
+                { title: 'Игрок', text: 'Я покажу тебе прогресс и активность.', portraitKey: playerPortrait },
+                { title: 'Диана', text: 'Давай. Один фейк — и ты в "Shadow Realm" без ревью.', portraitKey: 'dialogue_diana' }
+            ];
+            this.startDialog(dianaDialogue, () => {
                 this.scene.resume('GameScene');
                 const boss = new Enemy(this, bossRoom.x, bossRoom.y, this.player);
+                boss.anims.stop();
                 boss.setTexture('diana');
+                boss.setScale(0.02);
+                boss.health = 1000;
                 boss.setData('roomId', bossRoom.id);
                 this.enemies.add(boss);
+                boss.body.setSize(boss.width, boss.height);
             });
         }
     }
