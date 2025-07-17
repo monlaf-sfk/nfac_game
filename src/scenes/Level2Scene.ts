@@ -345,10 +345,11 @@ export default class Level2Scene extends Phaser.Scene {
         this.placeDoor(room.x, room.y + room.height / 2 - 32, 'miniboss_exit_door', true); // Close door in front
 
         const boss = new Enemy(this, room.x, room.y, this.player);
-        boss.setTexture('abai');
+        boss.setTexture('bahredin');
         boss.setData('roomId', room.id);
         this.enemies.add(boss);
-        boss.setScale(0.25);
+        boss.setScale(0.03);
+        boss.health = 500;
     }
 
     triggerBoss(room: Room) {

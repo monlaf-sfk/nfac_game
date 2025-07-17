@@ -24,6 +24,37 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.anims.play('spirit_stay_anim');
     }
 
+    setTexture(key: string, frame?: string | number): this {
+        super.setTexture(key, frame);
+        const isBoss = ['abai', 'diana', 'bahredin', 'arman', 'asseliy', 'bernar'].includes(this.texture.key);
+        if (isBoss) {
+            if (this.anims.isPlaying) {
+                this.anims.stop();
+            }
+            this.setBossBody();
+        }
+        return this;
+    }
+
+    setBossBody() {
+        if (!this.body) {
+            return;
+        }
+
+        switch (this.texture.key) {
+            case 'bahredin': {
+                const frameWidth = this.texture.get().width;
+                const frameHeight = this.texture.get().height;
+                const bodyWidth = frameWidth / 3;
+                const bodyHeight = frameHeight / 3;
+
+                this.body.setSize(bodyWidth, bodyHeight);
+                this.body.setOffset(frameWidth / 3, frameHeight / 3);
+                break;
+            }
+        }
+    }
+
     takeDamage(damage: number) {
         this.health -= damage;
         if (this.health <= 0) {
@@ -97,7 +128,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     update() {
-        const isBoss = this.texture.key === 'abai' || this.texture.key === 'diana';
+        const isBoss = this.texture.key === 'abai' || this.texture.key === 'diana' || this.texture.key === 'bahredin' || this.texture.key === 'arman' || this.texture.key === 'asseliy' || this.texture.key === 'bernar';
 
         if (!this.active || !this.player.active || (!isBoss && this.isAttacking) || !this.body) {
             this.setVelocityX(0);
