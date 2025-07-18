@@ -401,7 +401,7 @@ export default class GameScene extends Phaser.Scene {
 
         // Walls for room1's entrance/exit to this corridor
         const room1CorridorX = (x1 < x2) ? (x1 + roomWidth / 2) : (x1 - roomWidth / 2);
-        const wall1a = this.corridorWalls.create(room1CorridorX, y - wallSize / 2, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        const wall1a = this.corridorWalls.create(room1CorridorX, y - wallSize / 2, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5);
         wall1a.body.setSize(wallSize * 0.5, wallSize * 0.5);
         wall1a.setData('isEntranceWall', true);
         wall1a.setData('roomId', room1Id);
@@ -410,7 +410,7 @@ export default class GameScene extends Phaser.Scene {
         }
         wall1a.refreshBody(); // Добавлено для обновления физического тела
 
-        const wall1b = this.corridorWalls.create(room1CorridorX, y + wallSize / 2, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        const wall1b = this.corridorWalls.create(room1CorridorX, y + wallSize / 2, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5);
         wall1b.body.setSize(wallSize * 0.5, wallSize * 0.5);
         wall1b.setData('isEntranceWall', true);
         wall1b.setData('roomId', room1Id);
@@ -421,7 +421,7 @@ export default class GameScene extends Phaser.Scene {
 
         // Walls for room2's entrance/exit to this corridor
         const room2CorridorX = (x1 < x2) ? (x2 - roomWidth / 2) : (x2 + roomWidth / 2);
-        const wall2a = this.corridorWalls.create(room2CorridorX, y - wallSize / 2, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        const wall2a = this.corridorWalls.create(room2CorridorX, y - wallSize / 2, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5);
         wall2a.body.setSize(wallSize * 0.5, wallSize * 0.5);
         wall2a.setData('isEntranceWall', true);
         wall2a.setData('roomId', room2Id);
@@ -430,7 +430,7 @@ export default class GameScene extends Phaser.Scene {
         }
         wall2a.refreshBody(); // Добавлено для обновления физического тела
 
-        const wall2b = this.corridorWalls.create(room2CorridorX, y + wallSize / 2, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        const wall2b = this.corridorWalls.create(room2CorridorX, y + wallSize / 2, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5);
         wall2b.body.setSize(wallSize * 0.5, wallSize * 0.5);
         wall2b.setData('isEntranceWall', true);
         wall2b.setData('roomId', room2Id);
@@ -455,7 +455,7 @@ export default class GameScene extends Phaser.Scene {
 
         // Walls for room1's entrance/exit to this corridor
         const room1CorridorY = (y1 < y2) ? (y1 + roomHeight / 2) : (y1 - roomHeight / 2);
-        const wall1a = this.corridorWalls.create(x - wallSize / 2, room1CorridorY, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        const wall1a = this.corridorWalls.create(x - wallSize / 2, room1CorridorY, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5);
         wall1a.body.setSize(wallSize * 0.5, wallSize * 0.5);
         wall1a.setData('isEntranceWall', true);
         wall1a.setData('roomId', room1Id);
@@ -464,7 +464,7 @@ export default class GameScene extends Phaser.Scene {
         }
         wall1a.refreshBody(); // Добавлено для обновления физического тела
 
-        const wall1b = this.corridorWalls.create(x + wallSize / 2, room1CorridorY, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        const wall1b = this.corridorWalls.create(x + wallSize / 2, room1CorridorY, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5);
         wall1b.body.setSize(wallSize * 0.5, wallSize * 0.5);
         wall1b.setData('isEntranceWall', true);
         wall1b.setData('roomId', room1Id);
@@ -475,7 +475,7 @@ export default class GameScene extends Phaser.Scene {
 
         // Walls for room2's entrance/exit to this corridor
         const room2CorridorY = (y1 < y2) ? (y2 - roomHeight / 2) : (y2 + roomHeight / 2);
-        const wall2a = this.corridorWalls.create(x - wallSize / 2, room2CorridorY, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        const wall2a = this.corridorWalls.create(x - wallSize / 2, room2CorridorY, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5);
         wall2a.body.setSize(wallSize * 0.5, wallSize * 0.5);
         wall2a.setData('isEntranceWall', true);
         wall2a.setData('roomId', room2Id);
@@ -484,7 +484,7 @@ export default class GameScene extends Phaser.Scene {
         }
         wall2a.refreshBody(); // Добавлено для обновления физического тела
 
-        const wall2b = this.corridorWalls.create(x + wallSize / 2, room2CorridorY, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        const wall2b = this.corridorWalls.create(x + wallSize / 2, room2CorridorY, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5);
         wall2b.body.setSize(wallSize * 0.5, wallSize * 0.5);
         wall2b.setData('isEntranceWall', true);
         wall2b.setData('roomId', room2Id);
@@ -602,7 +602,7 @@ export default class GameScene extends Phaser.Scene {
                 // Add this for the boss door in GameScene
                 const bossRoom = this.rooms.find(r => r.id === 'boss_room');
                 if (bossRoom) {
-                    this.placeDoor(bossRoom.x, (bossRoom.y + this.rooms.find(r => r.id === 'miniboss_room')!.y) / 2, 'boss_door', false);
+                    this.openDoor('boss_door'); // Open the boss door
                 }
             }
 
