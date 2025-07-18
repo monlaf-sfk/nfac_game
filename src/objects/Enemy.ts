@@ -74,15 +74,28 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
         });
 
         if (this.health <= 0) {
-            this.setActive(false);
-            this.setVisible(false);
-            if (this.body) {
-                this.body.enable = false;
-            }
-
+            this.playDeathAnimation();
             return true;
         }
         return false;
+    }
+
+    private playDeathAnimation() {
+        this.healthBar.setVisible(false);
+        this.healthBarBackground.setVisible(false);
+        if (this.body) {
+            this.body.enable = false;
+        }
+
+        this.scene.tweens.add({
+            targets: this,
+            scaleY: 0, // Squash vertically
+            ease: 'Power1',
+            duration: 300,
+            onComplete: () => {
+                this.scene.events.emit('enemy-died', this);
+            }
+        });
     }
 
     private attack() {

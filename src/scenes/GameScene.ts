@@ -202,6 +202,16 @@ export default class GameScene extends Phaser.Scene {
         this.rooms.forEach(room => {
             this.spawnEnemies(room);
         });
+
+        this.events.on('enemy-died', this.handleEnemyDeath, this);
+    }
+
+    handleEnemyDeath(enemy: Enemy) {
+        const roomId = enemy.getData('roomId');
+        enemy.destroy();
+        if (roomId) {
+            this.checkRoomCompletion(roomId);
+        }
     }
 
     getCorridorDefs() {
@@ -377,8 +387,8 @@ export default class GameScene extends Phaser.Scene {
         door2.setData('doorId', doorId);
     }
 
-    collectCoin(player, coin) {
-        (coin as Phaser.Physics.Arcade.Sprite).destroy();
+    collectCoin(player: Phaser.Physics.Arcade.Sprite, coin: Phaser.Physics.Arcade.Sprite) {
+        coin.destroy();
         this.coinCount++;
         const uiScene = this.scene.get('UIScene') as UIScene;
         uiScene.updateCoinCount(this.coinCount);
@@ -430,12 +440,11 @@ export default class GameScene extends Phaser.Scene {
         bullet.destroy();
     }
 
-    bulletHitEnemy(bullet, enemy) {
+    bulletHitEnemy(bullet: Bullet, enemy: Enemy) {
         const roomId = enemy.getData('roomId'); // Получаем ID комнаты ДО уничтожения врага
         bullet.destroy();
         const isDead = enemy.takeDamage(50);
-        if (isDead && roomId) {
-            this.checkRoomCompletion(roomId);
+        if (isDead) {
 
             if (roomId === 'miniboss_room' && enemy.texture.key === 'abai') {
                 this.scene.pause('GameScene');
@@ -602,8 +611,8 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
-    collectPowerUp(player: Phaser.GameObjects.GameObject, powerUp: Phaser.GameObjects.GameObject) {
-        (powerUp as PowerUp).destroy();
+    collectPowerUp(player: Phaser.Physics.Arcade.Sprite, powerUp: PowerUp) {
+        powerUp.destroy();
         (player as Player).heal(100); // Heal to full
     }
 }
