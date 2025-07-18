@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import Level2Scene from './Level2Scene'; // Import Level2Scene
 
 export default class FrontendActivationScene extends Phaser.Scene {
     private enterKey?: Phaser.Input.Keyboard.Key;
@@ -37,7 +38,8 @@ export default class FrontendActivationScene extends Phaser.Scene {
             this.scene.stop('Level2Scene');
             this.scene.stop('UIScene');
             this.scene.stop('MinimapScene');
-            this.scene.start('FakeLoadingScene', { nextScene: 'Level3Scene', gender: this.scene.get('Level2Scene').player.texture.key.startsWith('boy') ? 'boy' : 'girl' });
+            const level2Scene = this.scene.get('Level2Scene') as Level2Scene; // Cast to Level2Scene
+            this.scene.start('FakeLoadingScene', { nextScene: 'Level3Scene', gender: level2Scene.player.texture.key.startsWith('boy') ? 'boy' : 'girl' });
         }
     }
 } 
