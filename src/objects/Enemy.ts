@@ -8,6 +8,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     private isAttacking = false;
     private attackRange = 50; // Дистанция атаки
     private detectionRange = 400; // Дистанция обнаружения игрока
+    private maxHealth = 100;
+    private healthBar!: Phaser.GameObjects.Graphics;
+    private healthBarBackground!: Phaser.GameObjects.Graphics;
 
     constructor(scene: Phaser.Scene, x: number, y: number, player: Player) {
         super(scene, x, y, 'spirit_stay_1');
@@ -21,7 +24,13 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.setOrigin(0.5, 0.5);
         this.refreshBody();
 
-        this.anims.play('spirit_stay_anim');
+        this.healthBar = scene.add.graphics();
+        this.healthBarBackground = scene.add.graphics();
+        this.healthBarBackground.setDepth(10);
+        this.healthBar.setDepth(10);
+        this.updateHealthBar();
+
+        this.anims.play('spirit_walk', true);
     }
 
     setTexture(key: string, frame?: string | number): this {
@@ -57,6 +66,13 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     takeDamage(damage: number) {
         this.health -= damage;
+        this.updateHealthBar();
+
+        this.setTint(0xff0000);
+        this.scene.time.delayedCall(150, () => {
+            this.clearTint();
+        });
+
         if (this.health <= 0) {
             this.setActive(false);
             this.setVisible(false);
@@ -128,6 +144,13 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     update() {
+        if (!this.active) {
+            this.healthBar.setVisible(false);
+            this.healthBarBackground.setVisible(false);
+            return;
+        }
+        this.updateHealthBar();
+
         const isBoss = this.texture.key === 'abai' || this.texture.key === 'diana' || this.texture.key === 'bahredin' || this.texture.key === 'arman' || this.texture.key === 'asseliy' || this.texture.key === 'bernar';
 
         if (!this.active || !this.player.active || (!isBoss && this.isAttacking) || !this.body) {
@@ -162,5 +185,49 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
                 this.anims.play('spirit_stay_anim', true);
             }
         }
+    }
+
+    private updateHealthBar() {
+        if (this.health > this.maxHealth) {
+            this.maxHealth = this.health;
+        }
+
+        this.healthBarBackground.clear();
+        this.healthBar.clear();
+
+        if (this.health >= this.maxHealth || this.health <= 0) {
+            this.healthBar.setVisible(false);
+            this.healthBarBackground.setVisible(false);
+            return;
+        }
+
+        this.healthBar.setVisible(true);
+        this.healthBarBackground.setVisible(true);
+
+        const healthBarWidth = 40;
+        const healthBarHeight = 4;
+        const x = this.x - healthBarWidth / 2;
+        const y = this.y - this.displayHeight / 2 - 8;
+
+        this.healthBarBackground.fillStyle(0xff0000, 0.7);
+        this.healthBarBackground.fillRect(x, y, healthBarWidth, healthBarHeight);
+
+        const healthPercentage = this.health / this.maxHealth;
+
+        if (healthPercentage < 0.3) {
+            this.healthBar.fillStyle(0xff0000, 1);
+        } else if (healthPercentage < 0.6) {
+            this.healthBar.fillStyle(0xffa500, 1);
+        } else {
+            this.healthBar.fillStyle(0x00ff00, 1);
+        }
+
+        this.healthBar.fillRect(x, y, healthBarWidth * healthPercentage, healthBarHeight);
+    }
+
+    destroy(fromScene?: boolean) {
+        this.healthBar.destroy();
+        this.healthBarBackground.destroy();
+        super.destroy(fromScene);
     }
 }
