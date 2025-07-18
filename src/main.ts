@@ -22,7 +22,7 @@ const config: Phaser.Types.Core.GameConfig = {
         default: 'arcade',
         arcade: {
             gravity: { y: 0, x: 0 },
-            debug: true
+            debug: false
         }
     },
     scene: [BootScene, MenuScene, GameScene, UIScene, MinimapScene, GameOverScene, DialogScene, BackendActivationScene, FakeLoadingScene, Level2Scene, FrontendActivationScene, Level3Scene, DeployProjectScene, NotificationScene]
