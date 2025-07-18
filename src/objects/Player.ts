@@ -12,7 +12,7 @@ type ExtendedCursorKeys = Phaser.Types.Input.Keyboard.CursorKeys & {
 
 export default class Player extends Phaser.Physics.Arcade.Sprite {
     private cursors: ExtendedCursorKeys;
-    public speed = 200;
+    public speed = 400;
     public weapon: Weapon | null = null;
     private spaceBar: Phaser.Input.Keyboard.Key;
     public health = 100; // Добавляем здоровье игроку

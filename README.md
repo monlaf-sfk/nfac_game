@@ -1,21 +1,22 @@
-# NFAC Game
 
-This is a top-down shooter game created with Phaser 3.
+# nfactorial-soulknight
 
-## How to run
+A 2D top-down shooter game built with Phaser 3 as part of the nfactorial incubator 2025 project.
 
-1.  `npm install`
-2.  `npm run dev`
+## How to Run
 
-## Progress
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Run the development server:
+   ```bash
+   npm run dev
+   ```
+3. Open your browser to the local address provided by Vite (e.g., `http://localhost:5173`).
 
-### Floor 1 (Backend)
+## Screenshots
 
-*   **Room 1:** 2 evil participants, 1 cleaner. Coin appears in the center after clearing.
-*   **Room 2:** 3 participants, 1 security guard. Coins appear in the corners of the room.
-*   **Room 3:** 2 cleaners, 2 participants, 1 security guard. Coins appear at the top and bottom after clearing.
-*   **Mini-boss:** Abai
-*   **Boss:** Diana
-*   **Friend:** Almas (dialog only)
-
-The first floor is fully implemented. 
+- ![Screenshot 1](photos/Screenshot%202025-07-18%20at%2011.01.42.png)
+- ![Screenshot 2](photos/Screenshot%202025-07-18%20at%2011.02.15.png)
+- ![Screenshot 3](photos/Screenshot%202025-07-18%20at%2011.02.22.png) 
