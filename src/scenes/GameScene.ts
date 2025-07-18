@@ -34,6 +34,7 @@ export default class GameScene extends Phaser.Scene {
     private rooms: Room[] = [];
     public bulletSpeed = 400;
     private computer?: Phaser.Physics.Arcade.Sprite;
+    private fogOfWarOverlays!: Map<string, Phaser.GameObjects.Container>;
 
     constructor() {
         super('GameScene');
@@ -44,6 +45,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     create() {
+        this.fogOfWarOverlays = new Map();
         this.physics.world.setBounds(0, 0, 5000, 5000);
 
         this.walls = this.physics.add.staticGroup();
@@ -81,8 +83,9 @@ export default class GameScene extends Phaser.Scene {
         this.crosshair.setDepth(100); // Убедимся, что прицел поверх всего
         this.input.setDefaultCursor('none'); // Скрываем системный курсор
         
+        const corridors = this.getCorridorDefs();
         this.scene.launch('UIScene', { parentScene: this });
-        this.scene.launch('MinimapScene', { gameScene: this });
+        this.scene.launch('MinimapScene', { gameScene: this, rooms: this.rooms, corridors });
         this.scene.bringToTop('UIScene');
         this.scene.bringToTop('MinimapScene');
     }
@@ -92,8 +95,8 @@ export default class GameScene extends Phaser.Scene {
         const bottomRoomY = 3396;
 
         this.rooms = [
-            { id: 'room1', x: 2500, y: 2500, ...roomSize, enemies: [{ type: 'spirit', count: 2 }, { type: 'cleaner', count: 1 }], coins: [{ name: 'coin_link', count: 1 }], isCleared: false, openings: { left: true, right: true, bottom: true } },
-            { id: 'room2', x: 1476, y: 2500, ...roomSize, enemies: [{ type: 'spirit', count: 3 }, { type: 'guard', count: 1 }], coins: [{ name: 'coin_inst', count: 1 }], isCleared: false, openings: { right: true, bottom: true } },
+            { id: 'room1', x: 2500, y: 2500, ...roomSize, enemies: [], coins: [{ name: 'coin_link', count: 1 }], isCleared: true, openings: { left: true, right: true, bottom: true } },
+            { id: 'room2', x: 1476, y: 2500, ...roomSize, enemies: [{ type: 'spirit', count: 3 }, { type: 'guard', count: 1 }], coins: [{ name: 'coin_inst', count: 2 }], isCleared: false, openings: { right: true, bottom: true } },
             { id: 'room3', x: 3524, y: 2500, ...roomSize, enemies: [{ type: 'cleaner', count: 2 }, { type: 'spirit', count: 2 }, { type: 'guard', count: 1 }], coins: [{ name: 'coin_tiktok', count: 1 }], isCleared: false, openings: { left: true, top: true } },
             { id: 'miniboss_room', x: 3524, y: 1604, ...roomSize, enemies: [], coins: [], isCleared: false, openings: { top: true, bottom: true }, isBossTriggered: false },
             { id: 'boss_room', x: 3524, y: 708, ...roomSize, enemies: [], coins: [], isCleared: false, openings: { bottom: true }, isBossTriggered: false },
@@ -103,6 +106,26 @@ export default class GameScene extends Phaser.Scene {
 
         this.rooms.forEach(room => {
             this.createRoom(room.x, room.y, room.openings);
+        });
+
+        this.rooms.forEach(room => {
+            if (room.id.includes('boss') || room.id.includes('miniboss')) {
+                const roomWidth = 12 * 64;
+                const roomHeight = 10 * 64;
+    
+                const overlayRect = this.add.rectangle(room.x, room.y, roomWidth, roomHeight, 0x000000, 0.9);
+                overlayRect.setDepth(50);
+    
+                const questionMark = this.add.text(room.x, room.y, '?', {
+                    fontSize: '128px',
+                    color: '#fff',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5);
+                questionMark.setDepth(51);
+    
+                const container = this.add.container(0, 0, [overlayRect, questionMark]);
+                this.fogOfWarOverlays.set(room.id, container);
+            }
         });
 
         const room1 = this.rooms.find(r => r.id === 'room1')!;
@@ -128,6 +151,26 @@ export default class GameScene extends Phaser.Scene {
         this.rooms.forEach(room => {
             this.spawnEnemies(room);
         });
+    }
+
+    getCorridorDefs() {
+        const room1 = this.rooms.find(r => r.id === 'room1')!;
+        const room2 = this.rooms.find(r => r.id === 'room2')!;
+        const room3 = this.rooms.find(r => r.id === 'room3')!;
+        const minibossRoom = this.rooms.find(r => r.id === 'miniboss_room')!;
+        const bossRoom = this.rooms.find(r => r.id === 'boss_room')!;
+        const bottomLeftRoom = this.rooms.find(r => r.id === 'bottom_left_room')!;
+        const bottomCenterRoom = this.rooms.find(r => r.id === 'bottom_center_room')!;
+
+        return [
+            { x1: room2.x, y1: room2.y, x2: room1.x, y2: room1.y, horizontal: true },
+            { x1: room1.x, y1: room1.y, x2: room3.x, y2: room3.y, horizontal: true },
+            { x1: minibossRoom.x, y1: minibossRoom.y, x2: room3.x, y2: room3.y, horizontal: false },
+            { x1: bossRoom.x, y1: bossRoom.y, x2: minibossRoom.x, y2: minibossRoom.y, horizontal: false },
+            { x1: room1.x, y1: room1.y, x2: bottomCenterRoom.x, y2: bottomCenterRoom.y, horizontal: false },
+            { x1: room2.x, y1: room2.y, x2: bottomLeftRoom.x, y2: bottomLeftRoom.y, horizontal: false },
+            { x1: bottomLeftRoom.x, y1: bottomLeftRoom.y, x2: bottomCenterRoom.x, y2: bottomCenterRoom.y, horizontal: true },
+        ];
     }
 
     spawnEnemies(room: Room) {
@@ -361,6 +404,13 @@ export default class GameScene extends Phaser.Scene {
         if (uiScene) {
             uiScene.updateHP(this.player.health);
         }
+
+        if (this.player.health <= 0) {
+            this.scene.stop('GameScene');
+            this.scene.stop('UIScene');
+            this.scene.stop('MinimapScene');
+            this.scene.start('GameOverScene', { win: false });
+        }
     }
 
     private startDialog(dialogue: { title: string; text: string; portraitKey: string }[], onComplete: () => void) {
@@ -421,6 +471,13 @@ export default class GameScene extends Phaser.Scene {
             ];
             this.startDialog(abaiDialogue, () => {
                 this.scene.resume('GameScene');
+
+                const overlay = this.fogOfWarOverlays.get(minibossRoom.id);
+                if (overlay) {
+                    overlay.destroy();
+                    this.fogOfWarOverlays.delete(minibossRoom.id);
+                }
+
                 const boss = new Enemy(this, minibossRoom.x, minibossRoom.y, this.player);
                 boss.anims.stop();
                 boss.setTexture('abai');
@@ -446,6 +503,13 @@ export default class GameScene extends Phaser.Scene {
             ];
             this.startDialog(dianaDialogue, () => {
                 this.scene.resume('GameScene');
+
+                const overlay = this.fogOfWarOverlays.get(bossRoom.id);
+                if (overlay) {
+                    overlay.destroy();
+                    this.fogOfWarOverlays.delete(bossRoom.id);
+                }
+                
                 const boss = new Enemy(this, bossRoom.x, bossRoom.y, this.player);
                 boss.anims.stop();
                 boss.setTexture('diana');

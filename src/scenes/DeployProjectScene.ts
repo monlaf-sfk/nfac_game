@@ -1,26 +1,32 @@
 import Phaser from 'phaser';
+import Level3Scene from './Level3Scene';
 
-export default class FrontendActivationScene extends Phaser.Scene {
+export default class DeployProjectScene extends Phaser.Scene {
     private enterKey?: Phaser.Input.Keyboard.Key;
     private spaceKey?: Phaser.Input.Keyboard.Key;
+    private parentScene!: Level3Scene;
 
     constructor() {
-        super('FrontendActivationScene');
+        super('DeployProjectScene');
+    }
+
+    init(data: { parentScene: Level3Scene }) {
+        this.parentScene = data.parentScene;
     }
 
     create() {
         const centerX = this.cameras.main.width / 2;
         const centerY = this.cameras.main.height / 2;
 
-        this.cameras.main.setBackgroundColor('#34d3e8'); // Light blue background
+        this.cameras.main.setBackgroundColor('#34d3e8');
 
-        this.add.text(centerX, centerY - 50, 'Activate frontend?', {
+        this.add.text(centerX, centerY - 50, 'Deploy project?', {
             fontSize: '48px',
             color: '#000000',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        this.add.text(centerX, centerY + 50, 'Press Enter or Space to Activate', {
+        this.add.text(centerX, centerY + 50, 'Press Enter or Space to Deploy', {
             fontSize: '24px',
             color: '#000000'
         }).setOrigin(0.5);
@@ -34,10 +40,8 @@ export default class FrontendActivationScene extends Phaser.Scene {
     update() {
         if ((this.enterKey && Phaser.Input.Keyboard.JustDown(this.enterKey)) ||
             (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey))) {
-            this.scene.stop('Level2Scene');
-            this.scene.stop('UIScene');
-            this.scene.stop('MinimapScene');
-            this.scene.start('FakeLoadingScene', { nextScene: 'Level3Scene', gender: this.scene.get('Level2Scene').player.texture.key.startsWith('boy') ? 'boy' : 'girl' });
+            this.parentScene.onProjectDeployed();
+            this.scene.stop();
         }
     }
 } 

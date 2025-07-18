@@ -52,5 +52,15 @@ export default class MenuScene extends Phaser.Scene {
         level2Button.on('pointerdown', () => {
             this.scene.start('Level2Scene', { gender });
         });
+
+        const level3Button = this.add.text(centerX, centerY + 150, 'Start Level 3', {
+            fontSize: '32px',
+            color: '#fff',
+            backgroundColor: '#333'
+        }).setPadding(10).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        level3Button.on('pointerdown', () => {
+            this.scene.start('Level3Scene', { gender });
+        });
     }
 }

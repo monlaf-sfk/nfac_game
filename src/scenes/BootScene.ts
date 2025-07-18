@@ -37,9 +37,15 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('dialogue_asseliy', 'assets/bosses/asseliy.png');
         this.load.image('dialogue_boy_player', 'assets/dialogue/boy_player.png');
         this.load.image('dialogue_girl_player', 'assets/dialogue/girl_player.png');
+        this.load.image('dialogue_igor', 'assets/friends/igor.png');
+        this.load.image('dialogue_bernar', 'assets/bosses/bernar.png');
+        this.load.image('dialogue_nurmek', 'assets/friends/nurmek.png');
+        this.load.image('dialogue_arman', 'assets/bosses/arman.png');
 
         // Friends
         this.load.image('almass', 'assets/friends/almass.png');
+        this.load.image('friend_nurmek', 'assets/friends/nurmek.png');
+        this.load.image('friend_igor', 'assets/friends/igor.png');
 
         // Objects
         this.load.image('pc', 'assets/object/pc.png');

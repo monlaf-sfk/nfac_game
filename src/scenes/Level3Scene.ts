@@ -19,7 +19,7 @@ interface Room {
     isFriendTriggered?: boolean;
 }
 
-export default class Level2Scene extends Phaser.Scene {
+export default class Level3Scene extends Phaser.Scene {
     public player!: Player;
     private gender!: string;
     private walls!: Phaser.Physics.Arcade.StaticGroup;
@@ -36,7 +36,7 @@ export default class Level2Scene extends Phaser.Scene {
     private fogOfWarOverlays!: Map<string, Phaser.GameObjects.Container>;
 
     constructor() {
-        super('Level2Scene');
+        super('Level3Scene');
     }
 
     init(data: { gender: string }) {
@@ -90,16 +90,29 @@ export default class Level2Scene extends Phaser.Scene {
 
     createWorld() {
         const roomSize = { width: 768, height: 640 };
-        const bottomRoomY = 3396;
+        const yTop = 1604;
+        const yCenter = 2500;
+        const yBottom = 3396;
+        const xFarLeft = 452;
+        const xLeft = 1476;
+        const xCenter = 2500;
+        const xRight = 3524;
+        const xFarRight = 4548;
 
         this.rooms = [
-            { id: 'start', x: 2500, y: 2500, ...roomSize, enemies: [], coins: [], isCleared: true, openings: { left: true, right: true, top: true } },
-            { id: 'dead_end', x: 2500, y: 1604, ...roomSize, enemies: [{ type: 'spirit', count: 4 }], coins: [{ name: 'coin_inst', count: 2 }], isCleared: false, openings: { bottom: true } },
-            { id: 'left_1', x: 1476, y: 2500, ...roomSize, enemies: [{ type: 'spirit', count: 3 }], coins: [{ name: 'coin_link', count: 1 }], isCleared: false, openings: { right: true, left: true } },
-            { id: 'left_2', x: 452, y: 2500, ...roomSize, enemies: [{ type: 'spirit', count: 5 }], coins: [{ name: 'coin_tiktok', count: 1 }], isCleared: false, openings: { right: true, bottom: true } },
-            { id: 'bottom_left', x: 452, y: bottomRoomY, ...roomSize, enemies: [{ type: 'spirit', count: 2 }, { type: 'guard', count: 1 }], coins: [{ name: 'coin_threads', count: 1 }], isCleared: false, openings: { top: true }, isFriendTriggered: false },
-            { id: 'miniboss', x: 3524, y: 2500, ...roomSize, enemies: [], coins: [{ name: 'coin_twitter', count: 1 }], isCleared: false, openings: { left: true, top: true }, isBossTriggered: false },
-            { id: 'boss', x: 3524, y: 1604, ...roomSize, enemies: [], coins: [{ name: 'coin_inst', count: 2 }], isCleared: false, openings: { bottom: true }, isBossTriggered: false }
+            // Center column
+            { id: 'start', x: xCenter, y: yCenter, ...roomSize, enemies: [], coins: [], isCleared: true, openings: { top: true, bottom: true, left: true, right: true } },
+            { id: 'boss', x: xCenter, y: yTop, ...roomSize, enemies: [], coins: [{ name: 'coin_inst', count: 2 }], isCleared: false, openings: { bottom: true }, isBossTriggered: false },
+            { id: 'bottom_left', x: xCenter, y: yBottom, ...roomSize, enemies: [{ type: 'spirit', count: 3 }], coins: [{ name: 'coin_threads', count: 1 }], isCleared: false, openings: { top: true }, isFriendTriggered: false },
+            
+            // Left branch
+            { id: 'left_1', x: xLeft, y: yCenter, ...roomSize, enemies: [{ type: 'spirit', count: 3 }], coins: [{ name: 'coin_link', count: 1 }], isCleared: false, openings: { right: true, left: true, bottom: true } },
+            { id: 'miniboss', x: xFarLeft, y: yCenter, ...roomSize, enemies: [], coins: [{ name: 'coin_twitter', count: 1 }], isCleared: false, openings: { right: true }, isBossTriggered: false },
+            { id: 'left_2', x: xLeft, y: yBottom, ...roomSize, enemies: [{ type: 'spirit', count: 5 }], coins: [{ name: 'coin_tiktok', count: 1 }], isCleared: false, openings: { top: true } },
+
+            // Right branch
+            { id: 'dead_end', x: xRight, y: yCenter, ...roomSize, enemies: [{ type: 'spirit', count: 4 }], coins: [{ name: 'coin_inst', count: 1 }], isCleared: false, openings: { left: true, right: true } },
+            { id: 'right_2_dead_end', x: xFarRight, y: yCenter, ...roomSize, enemies: [{ type: 'spirit', count: 6 }], coins: [{ name: 'coin_inst', count: 1 }], isCleared: false, openings: { left: true } },
         ];
 
         this.rooms.forEach(room => {
@@ -127,22 +140,26 @@ export default class Level2Scene extends Phaser.Scene {
         });
 
         const startRoom = this.rooms.find(r => r.id === 'start')!;
-        const deadEndRoom = this.rooms.find(r => r.id === 'dead_end')!;
-        const leftRoom1 = this.rooms.find(r => r.id === 'left_1')!;
-        const leftRoom2 = this.rooms.find(r => r.id === 'left_2')!;
-        const bottomLeftRoom = this.rooms.find(r => r.id === 'bottom_left')!;
-        const minibossRoom = this.rooms.find(r => r.id === 'miniboss')!;
         const bossRoom = this.rooms.find(r => r.id === 'boss')!;
+        const bottomFromStartRoom = this.rooms.find(r => r.id === 'bottom_left')!;
+        const left1TJunctionRoom = this.rooms.find(r => r.id === 'left_1')!;
+        const minibossRoom = this.rooms.find(r => r.id === 'miniboss')!;
+        const bottomFromTJunctionRoom = this.rooms.find(r => r.id === 'left_2')!;
+        const right1Room = this.rooms.find(r => r.id === 'dead_end')!;
+        const right2DeadEndRoom = this.rooms.find(r => r.id === 'right_2_dead_end')!;
 
-        this.createVerticalCorridor(deadEndRoom.y, startRoom.y, startRoom.x);
-        this.createHorizontalCorridor(leftRoom1.x, startRoom.x, startRoom.y);
-        this.createHorizontalCorridor(leftRoom2.x, leftRoom1.x, leftRoom1.y);
-        this.createVerticalCorridor(leftRoom2.y, bottomLeftRoom.y, leftRoom2.x);
-        this.createHorizontalCorridor(startRoom.x, minibossRoom.x, startRoom.y);
-        this.createVerticalCorridor(bossRoom.y, minibossRoom.y, minibossRoom.x);
-
-        this.placeDoor(minibossRoom.x - 498, minibossRoom.y, 'miniboss_door_1', true);
-        this.placeDoor(bossRoom.x, bossRoom.y + 420, 'boss_door_1', false);
+        // Corridors
+        this.createVerticalCorridor(bossRoom.y, startRoom.y, startRoom.x);
+        this.createVerticalCorridor(startRoom.y, bottomFromStartRoom.y, startRoom.x);
+        this.createVerticalCorridor(left1TJunctionRoom.y, bottomFromTJunctionRoom.y, left1TJunctionRoom.x);
+        this.createHorizontalCorridor(left1TJunctionRoom.x, startRoom.x, startRoom.y);
+        this.createHorizontalCorridor(minibossRoom.x, left1TJunctionRoom.x, left1TJunctionRoom.y);
+        this.createHorizontalCorridor(startRoom.x, right1Room.x, startRoom.y);
+        this.createHorizontalCorridor(right1Room.x, right2DeadEndRoom.x, right1Room.y);
+        
+        // Doors
+        this.placeDoor((minibossRoom.x + left1TJunctionRoom.x) / 2, minibossRoom.y, 'miniboss_door_1', true);
+        this.placeDoor(bossRoom.x, (bossRoom.y + startRoom.y) / 2, 'boss_door_1', false);
 
         this.weapons.add(new Weapon(this, startRoom.x, startRoom.y, 'ak-47'));
 
@@ -153,20 +170,22 @@ export default class Level2Scene extends Phaser.Scene {
 
     getCorridorDefs() {
         const startRoom = this.rooms.find(r => r.id === 'start')!;
-        const deadEndRoom = this.rooms.find(r => r.id === 'dead_end')!;
-        const leftRoom1 = this.rooms.find(r => r.id === 'left_1')!;
-        const leftRoom2 = this.rooms.find(r => r.id === 'left_2')!;
-        const bottomLeftRoom = this.rooms.find(r => r.id === 'bottom_left')!;
-        const minibossRoom = this.rooms.find(r => r.id === 'miniboss')!;
         const bossRoom = this.rooms.find(r => r.id === 'boss')!;
+        const bottomFromStartRoom = this.rooms.find(r => r.id === 'bottom_left')!;
+        const left1TJunctionRoom = this.rooms.find(r => r.id === 'left_1')!;
+        const minibossRoom = this.rooms.find(r => r.id === 'miniboss')!;
+        const bottomFromTJunctionRoom = this.rooms.find(r => r.id === 'left_2')!;
+        const right1Room = this.rooms.find(r => r.id === 'dead_end')!;
+        const right2DeadEndRoom = this.rooms.find(r => r.id === 'right_2_dead_end')!;
 
         return [
-            { x1: deadEndRoom.x, y1: deadEndRoom.y, x2: startRoom.x, y2: startRoom.y, horizontal: false },
-            { x1: leftRoom1.x, y1: leftRoom1.y, x2: startRoom.x, y2: startRoom.y, horizontal: true },
-            { x1: leftRoom2.x, y1: leftRoom2.y, x2: leftRoom1.x, y2: leftRoom1.y, horizontal: true },
-            { x1: leftRoom2.x, y1: leftRoom2.y, x2: bottomLeftRoom.x, y2: bottomLeftRoom.y, horizontal: false },
-            { x1: startRoom.x, y1: startRoom.y, x2: minibossRoom.x, y2: minibossRoom.y, horizontal: true },
-            { x1: bossRoom.x, y1: bossRoom.y, x2: minibossRoom.x, y2: minibossRoom.y, horizontal: false },
+            { x1: bossRoom.x, y1: bossRoom.y, x2: startRoom.x, y2: startRoom.y, horizontal: false },
+            { x1: startRoom.x, y1: startRoom.y, x2: bottomFromStartRoom.x, y2: bottomFromStartRoom.y, horizontal: false },
+            { x1: left1TJunctionRoom.x, y1: left1TJunctionRoom.y, x2: bottomFromTJunctionRoom.x, y2: bottomFromTJunctionRoom.y, horizontal: false },
+            { x1: left1TJunctionRoom.x, y1: left1TJunctionRoom.y, x2: startRoom.x, y2: startRoom.y, horizontal: true },
+            { x1: minibossRoom.x, y1: minibossRoom.y, x2: left1TJunctionRoom.x, y2: left1TJunctionRoom.y, horizontal: true },
+            { x1: startRoom.x, y1: startRoom.y, x2: right1Room.x, y2: right1Room.y, horizontal: true },
+            { x1: right1Room.x, y1: right1Room.y, x2: right2DeadEndRoom.x, y2: right2DeadEndRoom.y, horizontal: true },
         ];
     }
 
@@ -195,9 +214,9 @@ export default class Level2Scene extends Phaser.Scene {
             if (roomId === 'miniboss') {
                 this.openDoor('miniboss_door_1');
                 this.openDoor('miniboss_exit_door');
-                this.openDoor('boss_door_1');
-                const friend = this.physics.add.sprite(room.x + room.width / 4, room.y - room.height / 4, 'friend_igor').setScale(0.05).setInteractive();
-                friend.setData('friendId', 'igor');
+                const friend = this.physics.add.sprite(room.x + room.width / 4, room.y - room.height / 4, 'friend_nurmek').setScale(0.05).setInteractive();
+                friend.setData('friendId', 'nurmek');
+                this.spawnComputer(room.x, room.y, 'deploy');
             }
             if (roomId === 'boss') {
                 this.openDoor('boss_exit_door');
@@ -360,18 +379,36 @@ export default class Level2Scene extends Phaser.Scene {
         }
     }
 
-    spawnComputer(x: number, y: number) {
+    spawnComputer(x: number, y: number, type: 'final' | 'deploy' = 'final') {
         this.computer = this.physics.add.sprite(x, y, 'pc');
         this.computer.setScale(0.1);
         this.computer.setInteractive();
-        this.physics.add.overlap(this.player, this.computer, this.interactWithComputer, undefined, this);
+        this.computer.setData('type', type);
+        this.physics.add.overlap(this.player, this.computer, this.interactWithComputer as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
     }
 
-    interactWithComputer() {
-        if (this.computer) {
-            this.scene.launch('FrontendActivationScene');
-            this.scene.pause();
+    interactWithComputer(player: Phaser.Types.Physics.Arcade.GameObjectWithBody, computer: Phaser.Types.Physics.Arcade.GameObjectWithBody) {
+        if (computer instanceof Phaser.Physics.Arcade.Sprite) {
+            const type = computer.getData('type');
+            if (type === 'deploy') {
+                this.scene.launch('DeployProjectScene', { parentScene: this });
+                this.scene.pause();
+                if (computer.body) {
+                    (computer.body as Phaser.Physics.Arcade.Body).enable = false;
+                }
+                computer.setVisible(false);
+            } else {
+                this.scene.stop('Level3Scene');
+                this.scene.stop('UIScene');
+                this.scene.stop('MinimapScene');
+                this.scene.start('GameOverScene', { win: true });
+            }
         }
+    }
+
+    onProjectDeployed() {
+        this.openDoor('boss_door_1');
+        this.scene.resume('Level3Scene');
     }
 
     playerHitByEnemy(player: Phaser.Types.Physics.Arcade.GameObjectWithBody, enemy: Phaser.Types.Physics.Arcade.GameObjectWithBody) {
@@ -383,7 +420,7 @@ export default class Level2Scene extends Phaser.Scene {
         }
 
         if (this.player.health <= 0) {
-            this.scene.stop('Level2Scene');
+            this.scene.stop('Level3Scene');
             this.scene.stop('UIScene');
             this.scene.stop('MinimapScene');
             this.scene.start('GameOverScene', { win: false });
@@ -391,7 +428,7 @@ export default class Level2Scene extends Phaser.Scene {
     }
 
     private startDialog(dialogue: { title: string; text: string; portraitKey: string }[], onComplete: () => void) {
-        this.scene.pause('Level2Scene');
+        this.scene.pause('Level3Scene');
         this.scene.launch('DialogScene', { dialogue, onComplete });
         this.scene.bringToTop('DialogScene');
     }
@@ -421,15 +458,15 @@ export default class Level2Scene extends Phaser.Scene {
         const minibossRoom = this.rooms.find(r => r.id === 'miniboss')!;
         if (!minibossRoom.isBossTriggered && this.player.x > minibossRoom.x - minibossRoom.width / 2 && this.player.x < minibossRoom.x + minibossRoom.width/2 && this.player.y > minibossRoom.y - minibossRoom.height/2 && this.player.y < minibossRoom.y + minibossRoom.height/2) {
             minibossRoom.isBossTriggered = true;
-            const bahredinDialogue = [
-                { title: 'Игрок', text: 'Бахредин, я готов показать тебе свой дизайн.', portraitKey: playerPortrait },
-                { title: 'Бахредин', text: 'Дизайн? Ты думаешь, пара картинок в Figma — это дизайн? Где твои user flow, где CJM? Ты хотя бы с пользователями говорил?', portraitKey: 'dialogue_bahredin' },
-                { title: 'Игрок', text: 'Я... я думал, это не так важно на старте.', portraitKey: playerPortrait },
-                { title: 'Бахредин', text: 'Не важно?! Ты строишь дом без фундамента! Иди и не возвращайся, пока у тебя не будет полноценного исследования. А пока — докажи, что ты хотя бы можешь защитить свои "идеи"!', portraitKey: 'dialogue_bahredin' }
+            const bernarDialogue = [
+                { title: 'Игрок', text: 'Всё работает локально, но как запустить?', portraitKey: playerPortrait },
+                { title: 'Бернар', text: '“У меня всё работает” — не аргумент. Где CI/CD, где логирование?', portraitKey: 'dialogue_bernar' },
+                { title: 'Игрок', text: 'Docker, GitHub Actions, всё задеплоено.', portraitKey: playerPortrait },
+                { title: 'Бернар', text: 'Покажи, или я разобью твой prod об staging!', portraitKey: 'dialogue_bernar' }
             ];
 
-            this.startDialog(bahredinDialogue, () => {
-                this.scene.resume('Level2Scene');
+            this.startDialog(bernarDialogue, () => {
+                this.scene.resume('Level3Scene');
 
                 const overlay = this.fogOfWarOverlays.get(minibossRoom.id);
                 if (overlay) {
@@ -441,7 +478,7 @@ export default class Level2Scene extends Phaser.Scene {
                 this.placeDoor(minibossRoom.x, minibossRoom.y + minibossRoom.height / 2 - 32, 'miniboss_exit_door', true); // Close door in front
         
                 const boss = new Enemy(this, minibossRoom.x, minibossRoom.y, this.player);
-                boss.setTexture('bahredin');
+                boss.setTexture('bernar');
                 boss.setData('roomId', minibossRoom.id);
                 this.enemies.add(boss);
                 boss.setScale(0.03);
@@ -455,15 +492,14 @@ export default class Level2Scene extends Phaser.Scene {
         const bossRoom = this.rooms.find(r => r.id === 'boss')!;
         if (!bossRoom.isBossTriggered && minibossRoom.isCleared && this.player.y < bossRoom.y + bossRoom.height / 2 && this.player.y > bossRoom.y - bossRoom.height/2 && this.player.x > bossRoom.x - bossRoom.width/2 && this.player.x < bossRoom.x + bossRoom.width/2) {
             bossRoom.isBossTriggered = true;
-            const asseliyDialogue = [
-                { title: 'Игрок', text: 'Я прошел все испытания и готов к работе над проектом.', portraitKey: playerPortrait },
-                { title: 'Аселия', text: 'Готов? Ты уверен, что понимаешь, что такое "проект"? Это не просто код, это ответственность. Ты должен быть готов к ревью 24/7.', portraitKey: 'dialogue_asseliy' },
-                { title: 'Игрок', text: 'Я готов, я все сделал.', portraitKey: playerPortrait },
-                { title: 'Аселия', text: 'Докажи. Покажи мне, что твой код так же хорош, как и твоя уверенность.', portraitKey: 'dialogue_asseliy' }
+            const armanDialogue = [
+                { title: 'Арман', text: 'Ты прошёл путь стажёра, разработчика и питчера. Но готов ли ты стать фаундером?', portraitKey: 'dialogue_arman' },
+                { title: 'Игрок', text: 'Мой продукт работает, мой стек стабилен, я знаю своих юзеров.', portraitKey: playerPortrait },
+                { title: 'Арман', text: 'Тогда покажи силу своих решений. Финальный питч!', portraitKey: 'dialogue_arman' }
             ];
 
-            this.startDialog(asseliyDialogue, () => {
-                this.scene.resume('Level2Scene');
+            this.startDialog(armanDialogue, () => {
+                this.scene.resume('Level3Scene');
 
                 const overlay = this.fogOfWarOverlays.get(bossRoom.id);
                 if (overlay) {
@@ -475,7 +511,7 @@ export default class Level2Scene extends Phaser.Scene {
                 this.placeDoor(bossRoom.x, bossRoom.y + 420, 'boss_exit_door', false); // Close door behind
                 
                 const boss = new Enemy(this, bossRoom.x, bossRoom.y - 100, this.player);
-                boss.setTexture('asseliy');
+                boss.setTexture('arman');
                 boss.setData('roomId', bossRoom.id);
                 this.enemies.add(boss);
                 boss.setScale(0.03);
@@ -493,20 +529,20 @@ export default class Level2Scene extends Phaser.Scene {
             friend.anims.play('nurmek_anim');
         }
 
-        const igorMinibossRoom = this.rooms.find(r => r.id === 'miniboss')!;
-        if (igorMinibossRoom.isCleared && !igorMinibossRoom.isFriendTriggered && this.player.x > igorMinibossRoom.x && this.player.y < igorMinibossRoom.y) {
-            igorMinibossRoom.isFriendTriggered = true;
-            const igorDialogue = [
-                { title: 'Игрок', text: 'Игорь, привет. Я почти дошёл до Асель.', portraitKey: playerPortrait },
-                { title: 'Игорь', text: 'Красава! Но помни — кодить мало. Если о тебе никто не узнает, ты как пустая репа.', portraitKey: 'dialogue_igor' },
-                { title: 'Игрок', text: 'Что посоветуешь?', portraitKey: playerPortrait },
-                { title: 'Игорь', text: 'Зарегистрируйся на Peerlist, заполни профиль. И не забудь про Product Hunt — там лайки = валюта внимания.', portraitKey: 'dialogue_igor' },
-                { title: 'Игрок', text: 'Спасибо. Увижу тебя на homepage!', portraitKey: playerPortrait },
-                { title: 'Игорь', text: 'Увидишь — если оформляешь чётко. Удачи!', portraitKey: 'dialogue_igor' }
+        const nurmekMinibossRoom = this.rooms.find(r => r.id === 'miniboss')!;
+        if (nurmekMinibossRoom.isCleared && !nurmekMinibossRoom.isFriendTriggered && this.player.x > nurmekMinibossRoom.x && this.player.y < nurmekMinibossRoom.y) {
+            nurmekMinibossRoom.isFriendTriggered = true;
+            const nurmekDialogue = [
+                { title: 'Игрок', text: 'Нурмухамед! Это ты тот самый, кто сделал тысячу юзеров за месяц?', portraitKey: playerPortrait },
+                { title: 'Нурмухамед', text: 'Было дело. Главное — понять, кому реально нужен твой продукт.', portraitKey: 'dialogue_nurmek' },
+                { title: 'Игрок', text: 'Как ты это сделал?', portraitKey: playerPortrait },
+                { title: 'Нурмухамед', text: 'Пилот с узкой аудиторией, ручной онбординг, личные созвоны.', portraitKey: 'dialogue_nurmek' },
+                { title: 'Игрок', text: 'Понял. Никакой магии, только юзер и работа.', portraitKey: playerPortrait },
+                { title: 'Нурмухамед', text: 'Именно. Армансу не интересны мечты — его интересует impact. Удачи!', portraitKey: 'dialogue_nurmek' }
             ];
-            this.startDialog(igorDialogue, () => {
-                this.scene.resume('Level2Scene');
+            this.startDialog(nurmekDialogue, () => {
+                this.scene.resume('Level3Scene');
             });
         }
     }
-}
+} 
