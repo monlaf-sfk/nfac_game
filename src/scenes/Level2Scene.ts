@@ -93,6 +93,8 @@ export default class Level2Scene extends Phaser.Scene {
         this.scene.launch('MinimapScene', { gameScene: this, rooms: this.rooms, corridors });
         this.scene.bringToTop('UIScene');
         this.scene.bringToTop('MinimapScene');
+
+        this.events.on('enemy-died', this.handleEnemyDeath, this); // Add event listener
     }
 
     createWorld() {
@@ -100,7 +102,7 @@ export default class Level2Scene extends Phaser.Scene {
         const bottomRoomY = 3396;
 
         this.rooms = [
-            { id: 'start', x: 2500, y: 2500, ...roomSize, enemies: [], coins: [], isCleared: true, openings: { left: true, right: true, top: true } },
+            { id: 'start', x: 2500, y: 2500, ...roomSize, enemies: [], coins: [{ name: 'coin_link', count: 1 }], isCleared: true, openings: { left: true, right: true, top: true } },
             { id: 'dead_end', x: 2500, y: 1604, ...roomSize, enemies: [{ type: 'spirit', count: 4 }], coins: [{ name: 'coin_inst', count: 2 }], isCleared: false, openings: { bottom: true } },
             { id: 'left_1', x: 1476, y: 2500, ...roomSize, enemies: [{ type: 'spirit', count: 3 }], coins: [{ name: 'coin_link', count: 1 }], isCleared: false, openings: { right: true, left: true } },
             { id: 'left_2', x: 452, y: 2500, ...roomSize, enemies: [{ type: 'spirit', count: 5 }], coins: [{ name: 'coin_tiktok', count: 1 }], isCleared: false, openings: { right: true, bottom: true } },
@@ -224,7 +226,7 @@ export default class Level2Scene extends Phaser.Scene {
             return;
         }
 
-        const remainingEnemies = this.enemies.getChildren().filter(e => e.getData('roomId') === roomId && e.active);
+        const remainingEnemies = this.enemies.getChildren().filter(e => e.getData('roomId') === roomId);
         if (remainingEnemies.length === 0) {
             room.isCleared = true;
             this.spawnCoins(room);
@@ -248,8 +250,12 @@ export default class Level2Scene extends Phaser.Scene {
                 const x = Phaser.Math.Between(room.x - room.width / 4, room.x + room.width / 4);
                 const y = Phaser.Math.Between(room.y - room.height / 4, room.y + room.height / 4);
                 const coin = this.coins.create(x, y, coinInfo.name);
-                const newScale = 0.005;
+                console.log(`Spawning coin: ${coinInfo.name} at x:${x}, y:${y} in room: ${room.id}`); // Add logging
+                const newScale = 0.005 // Increased scale for visibility
                 coin.setScale(newScale);
+                if (coin.body) {
+                    (coin.body as Phaser.Physics.Arcade.Body).enable = true; // Ensure body is enabled
+                }
 
                 this.tweens.add({
                     targets: coin,
@@ -398,8 +404,8 @@ export default class Level2Scene extends Phaser.Scene {
         (bullet as Phaser.Physics.Arcade.Sprite).destroy();
         const isDead = enemySprite.takeDamage(50);
         if (isDead) {
-            const roomId = enemySprite.getData('roomId');
-            this.checkRoomCompletion(roomId);
+            const roomId = enemySprite.getData('roomId'); // Get roomId before destroying enemy
+            this.events.emit('enemy-died', enemySprite); // Emit event for Level2Scene to handle
 
             if (roomId === 'miniboss' && enemySprite.texture.key === 'bahredin') {
                 this.scene.pause('Level2Scene');
@@ -410,6 +416,14 @@ export default class Level2Scene extends Phaser.Scene {
                     rightImage: { key: 'nfactorial_logo', scale: 0.1 }
                 });
             }
+        }
+    }
+
+    handleEnemyDeath(enemy: Enemy) {
+        const roomId = enemy.getData('roomId');
+        this.enemies.remove(enemy, true); // Remove from group and destroy
+        if (roomId) {
+            this.checkRoomCompletion(roomId);
         }
     }
 

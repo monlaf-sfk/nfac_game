@@ -235,7 +235,7 @@ export default class GameScene extends Phaser.Scene {
 
     handleEnemyDeath(enemy: Enemy) {
         const roomId = enemy.getData('roomId');
-        enemy.destroy();
+        this.enemies.remove(enemy, true); // Remove from group and destroy
         if (roomId) {
             this.checkRoomCompletion(roomId);
         }

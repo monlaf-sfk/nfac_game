@@ -93,6 +93,8 @@ export default class Level3Scene extends Phaser.Scene {
         this.scene.launch('MinimapScene', { gameScene: this, rooms: this.rooms, corridors });
         this.scene.bringToTop('UIScene');
         this.scene.bringToTop('MinimapScene');
+
+        this.events.on('enemy-died', this.handleEnemyDeath, this); // Add event listener
     }
 
     createWorld() {
@@ -108,7 +110,7 @@ export default class Level3Scene extends Phaser.Scene {
 
         this.rooms = [
             // Center column
-            { id: 'start', x: xCenter, y: yCenter, ...roomSize, enemies: [], coins: [], isCleared: true, openings: { top: true, bottom: true, left: true, right: true } },
+            { id: 'start', x: xCenter, y: yCenter, ...roomSize, enemies: [], coins: [{ name: 'coin_twitter', count: 1 }], isCleared: true, openings: { top: true, bottom: true, left: true, right: true } },
             { id: 'boss', x: xCenter, y: yTop, ...roomSize, enemies: [], coins: [{ name: 'coin_inst', count: 2 }], isCleared: false, openings: { bottom: true }, isBossTriggered: false },
             { id: 'bottom_left', x: xCenter, y: yBottom, ...roomSize, enemies: [{ type: 'spirit', count: 3 }], coins: [{ name: 'coin_threads', count: 1 }], isCleared: false, openings: { top: true }, isFriendTriggered: false },
             
@@ -243,7 +245,7 @@ export default class Level3Scene extends Phaser.Scene {
             return;
         }
 
-        const remainingEnemies = this.enemies.getChildren().filter(e => e.getData('roomId') === roomId && e.active);
+        const remainingEnemies = this.enemies.getChildren().filter(e => e.getData('roomId') === roomId);
         if (remainingEnemies.length === 0) {
             room.isCleared = true;
             this.spawnCoins(room);
@@ -269,6 +271,9 @@ export default class Level3Scene extends Phaser.Scene {
                 const coin = this.coins.create(x, y, coinInfo.name);
                 const newScale = 0.005;
                 coin.setScale(newScale);
+                if (coin.body) {
+                    (coin.body as Phaser.Physics.Arcade.Body).enable = true; // Ensure body is enabled
+                }
 
                 this.tweens.add({
                     targets: coin,
@@ -422,8 +427,8 @@ export default class Level3Scene extends Phaser.Scene {
         (bullet as Phaser.Physics.Arcade.Sprite).destroy();
         const isDead = enemySprite.takeDamage(50);
         if (isDead) {
-            const roomId = enemySprite.getData('roomId');
-            this.checkRoomCompletion(roomId);
+            const roomId = enemySprite.getData('roomId'); // Get roomId before destroying enemy
+            this.events.emit('enemy-died', enemySprite); // Emit event for Level3Scene to handle
 
             if (roomId === 'miniboss' && enemySprite.texture.key === 'bernar') {
                 this.scene.pause('Level3Scene');
@@ -434,6 +439,14 @@ export default class Level3Scene extends Phaser.Scene {
                     rightImage: { key: 'nfactorial_logo', scale: 0.1 }
                 });
             }
+        }
+    }
+
+    handleEnemyDeath(enemy: Enemy) {
+        const roomId = enemy.getData('roomId');
+        this.enemies.remove(enemy, true); // Remove from group and destroy
+        if (roomId) {
+            this.checkRoomCompletion(roomId);
         }
     }
 
