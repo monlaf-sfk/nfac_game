@@ -74,13 +74,13 @@ export default class GameScene extends Phaser.Scene {
 
         this.physics.add.collider(this.player, this.walls);
         this.physics.add.collider(this.player, this.doors);
-        this.physics.add.overlap(this.player, this.coins, this.collectCoin, undefined, this);
+        this.physics.add.overlap(this.player, this.coins, this.collectCoin as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
         this.physics.add.overlap(this.player, this.weapons, this.pickUpWeapon, undefined, this);
-        this.physics.add.overlap(this.player, this.powerUps, this.collectPowerUp, undefined, this);
+        this.physics.add.overlap(this.player, this.powerUps, this.collectPowerUp as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
         this.physics.add.collider(this.player, this.enemies, this.playerHitByEnemy, undefined, this);
         this.physics.add.collider(this.enemies, this.walls);
         this.physics.add.collider(this.bullets, this.walls, this.bulletHitWall, undefined, this);
-        this.physics.add.collider(this.bullets, this.enemies, this.bulletHitEnemy, undefined, this);
+        this.physics.add.collider(this.bullets, this.enemies, this.bulletHitEnemy as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
 
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
         this.cameras.main.setBounds(0, 0, 5000, 5000);
@@ -323,7 +323,7 @@ export default class GameScene extends Phaser.Scene {
                 if (openings.right && i === (roomWidth / wallSize) - 1 && y >= centerY - doorSize / 2 && y < centerY + doorSize / 2) isDoor = true;
 
                 if (!isDoor) {
-                    this.walls.create(x, y, 'wall_placeholder').setOrigin(0).refreshBody();
+                    this.walls.create(x, y, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
                 }
             }
         }
@@ -360,8 +360,8 @@ export default class GameScene extends Phaser.Scene {
         const endX = Math.max(x1, x2) - roomWidth / 2;
         this.add.tileSprite(startX, y - corridorWidth / 2, endX - startX, corridorWidth, 'floor_placeholder').setOrigin(0);
         for (let x = startX; x < endX; x += wallSize) {
-            this.walls.create(x, y - corridorWidth / 2 - wallSize, 'wall_placeholder').setOrigin(0).refreshBody();
-            this.walls.create(x, y + corridorWidth / 2, 'wall_placeholder').setOrigin(0).refreshBody();
+            this.walls.create(x, y - corridorWidth / 2 - wallSize, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
+            this.walls.create(x, y + corridorWidth / 2, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
         }
     }
     
@@ -373,8 +373,8 @@ export default class GameScene extends Phaser.Scene {
         const endY = Math.max(y1, y2) - roomHeight / 2;
         this.add.tileSprite(x - corridorWidth / 2, startY, corridorWidth, endY - startY, 'floor_placeholder').setOrigin(0);
         for (let y = startY; y < endY; y += wallSize) {
-            this.walls.create(x - corridorWidth / 2 - wallSize, y, 'wall_placeholder').setOrigin(0).refreshBody();
-            this.walls.create(x + corridorWidth / 2, y, 'wall_placeholder').setOrigin(0).refreshBody();
+            this.walls.create(x - corridorWidth / 2 - wallSize, y, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
+            this.walls.create(x + corridorWidth / 2, y, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
         }
     }
 
