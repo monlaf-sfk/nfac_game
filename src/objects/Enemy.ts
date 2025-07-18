@@ -74,11 +74,21 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
         });
 
         if (this.health <= 0) {
-            this.setActive(false);
-            this.setVisible(false);
-            if (this.body) {
-                this.body.enable = false;
-            }
+            this.scene.tweens.add({
+                targets: this,
+                displayHeight: 0,
+                duration: 200, // Длительность анимации сжатия
+                ease: 'Power2',
+                onComplete: () => {
+                    this.setActive(false);
+                    this.setVisible(false);
+                    if (this.body) {
+                        this.body.enable = false;
+                    }
+                    this.healthBar.destroy();
+                    this.healthBarBackground.destroy();
+                }
+            });
             return true;
         }
         return false;
