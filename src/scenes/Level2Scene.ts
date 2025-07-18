@@ -142,6 +142,27 @@ export default class Level2Scene extends Phaser.Scene {
         this.createVerticalCorridor(bossRoom.y, minibossRoom.y, minibossRoom.x);
 
         this.placeDoor(minibossRoom.x - 498, minibossRoom.y, 'miniboss_door_1', true);
+
+        const triggerZone = this.add.zone(minibossRoom.x - 498 - 64, minibossRoom.y, 64, 128);
+        this.physics.world.enable(triggerZone);
+        (triggerZone.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
+        (triggerZone.body as Phaser.Physics.Arcade.Body).moves = false;
+        
+        this.physics.add.overlap(this.player, triggerZone, () => {
+            if (this.coinCount < 5) {
+                this.scene.pause('Level2Scene');
+                this.scene.launch('NotificationScene', {
+                    parentSceneKey: 'Level2Scene',
+                    text: "It's too early, dude. Go collect 5 promotions and kill everyone!",
+                    leftImage: { key: 'question_mark', scale: 0.2 }
+                });
+                (triggerZone.body as Phaser.Physics.Arcade.Body).enable = false;
+                this.time.delayedCall(5000, () => {
+                    (triggerZone.body as Phaser.Physics.Arcade.Body).enable = true;
+                });
+            }
+        }, undefined, this);
+
         this.placeDoor(bossRoom.x, bossRoom.y + 420, 'boss_door_1', false);
 
         this.weapons.add(new Weapon(this, startRoom.x, startRoom.y, 'ak-47'));
@@ -319,6 +340,13 @@ export default class Level2Scene extends Phaser.Scene {
 
         if (this.coinCount >= 5) {
             this.openDoor('miniboss_door_1');
+            this.scene.pause('Level2Scene');
+            this.scene.launch('NotificationScene', {
+                parentSceneKey: 'Level2Scene',
+                text: 'You have done 5 promotions, now you can go to mini-boss to defeat him! Gates is open!',
+                leftImage: { key: 'dialogue_arman', scale: 0.02 },
+                rightImage: { key: 'nfactorial_logo', scale: 0.1 }
+            });
         }
     }
 
@@ -357,6 +385,16 @@ export default class Level2Scene extends Phaser.Scene {
         if (isDead) {
             const roomId = enemySprite.getData('roomId');
             this.checkRoomCompletion(roomId);
+
+            if (roomId === 'miniboss' && enemySprite.texture.key === 'bahredin') {
+                this.scene.pause('Level2Scene');
+                this.scene.launch('NotificationScene', {
+                    parentSceneKey: 'Level2Scene',
+                    text: 'You have defeated mini-boss: Bahredin, now you can go to main boss! Gates is open!',
+                    leftImage: { key: 'dialogue_arman', scale: 0.02 },
+                    rightImage: { key: 'nfactorial_logo', scale: 0.1 }
+                });
+            }
         }
     }
 

@@ -4,7 +4,7 @@ import UIScene from './UIScene';
 import Weapon from '../objects/Weapon';
 import Enemy from '../objects/Enemy';
 import Bullet from '../objects/Bullet';
-import { PLAYER_SPEED, ENEMY_SPEED } from '../utils/constants';
+import PowerUp from '../objects/PowerUp';
 
 interface Room {
     x: number;
@@ -29,6 +29,7 @@ export default class GameScene extends Phaser.Scene {
     private enemies!: Phaser.Physics.Arcade.Group;
     private bullets!: Phaser.Physics.Arcade.Group;
     private doors!: Phaser.Physics.Arcade.StaticGroup;
+    private powerUps!: Phaser.Physics.Arcade.Group;
     private coinCount = 0;
     public crosshair!: Phaser.GameObjects.Image;
     private rooms: Room[] = [];
@@ -59,6 +60,10 @@ export default class GameScene extends Phaser.Scene {
             runChildUpdate: true
         });
         this.doors = this.physics.add.staticGroup();
+        this.powerUps = this.physics.add.group({
+            classType: PowerUp,
+            runChildUpdate: true
+        });
 
         // Сначала создаем игрока
         const playerTexture = this.gender === 'boy' ? 'boy_walk_1' : 'girl_walk_1';
@@ -71,6 +76,7 @@ export default class GameScene extends Phaser.Scene {
         this.physics.add.collider(this.player, this.doors);
         this.physics.add.overlap(this.player, this.coins, this.collectCoin, undefined, this);
         this.physics.add.overlap(this.player, this.weapons, this.pickUpWeapon, undefined, this);
+        this.physics.add.overlap(this.player, this.powerUps, this.collectPowerUp, undefined, this);
         this.physics.add.collider(this.player, this.enemies, this.playerHitByEnemy, undefined, this);
         this.physics.add.collider(this.enemies, this.walls);
         this.physics.add.collider(this.bullets, this.walls, this.bulletHitWall, undefined, this);
@@ -88,6 +94,21 @@ export default class GameScene extends Phaser.Scene {
         this.scene.launch('MinimapScene', { gameScene: this, rooms: this.rooms, corridors });
         this.scene.bringToTop('UIScene');
         this.scene.bringToTop('MinimapScene');
+
+        this.scene.pause('GameScene');
+        this.scene.launch('NotificationScene', { 
+            parentSceneKey: 'GameScene',
+            text: [
+                'Welcome to the nfactorial incubator 2025!',
+                'To pass it you will need to:',
+                '',
+                '- Defeat members to get promo coins',
+                '- Defeat mini-bosses to learn',
+                '- Defeat bosses to check your skills'
+            ],
+            leftImage: { key: 'dialogue_arman', scale: 0.02 },
+            rightImage: { key: 'nfactorial_logo', scale: 0.1 }
+        });
     }
 
     createWorld() {
@@ -146,6 +167,36 @@ export default class GameScene extends Phaser.Scene {
 
         this.placeDoor(minibossRoom.x, 2100, 'miniboss_door');
 
+        const eligibleRooms = this.rooms.filter(r => r.id !== 'room1' && !r.id.includes('boss'));
+        const selectedRooms = Phaser.Utils.Array.Shuffle(eligibleRooms).slice(0, 3);
+        selectedRooms.forEach(room => {
+            const powerUpX = Phaser.Math.Between(room.x - room.width / 4, room.x + room.width / 4);
+            const powerUpY = Phaser.Math.Between(room.y - room.height / 4, room.y + room.height / 4);
+            this.powerUps.add(new PowerUp(this, powerUpX, powerUpY, 'nfactorial_logo'));
+        });
+
+        const triggerZone = this.add.zone(minibossRoom.x, 2200, 128, 64);
+        this.physics.world.enable(triggerZone);
+        (triggerZone.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
+        (triggerZone.body as Phaser.Physics.Arcade.Body).moves = false;
+        
+        this.physics.add.overlap(this.player, triggerZone, () => {
+            if (this.coinCount < 5) {
+                this.scene.pause('GameScene');
+                this.scene.launch('NotificationScene', {
+                    parentSceneKey: 'GameScene',
+                    text: "It's too early, dude. Go collect 5 promotions and kill everyone!",
+                    leftImage: { key: 'question_mark', scale: 0.2 }
+                });
+                // Disable the trigger zone to prevent repeated notifications
+                (triggerZone.body as Phaser.Physics.Arcade.Body).enable = false;
+                // Re-enable after a delay
+                this.time.delayedCall(5000, () => {
+                    (triggerZone.body as Phaser.Physics.Arcade.Body).enable = true;
+                });
+            }
+        }, undefined, this);
+
         this.weapons.add(new Weapon(this, room1.x, room1.y, 'ak-47'));
 
         this.rooms.forEach(room => {
@@ -195,6 +246,10 @@ export default class GameScene extends Phaser.Scene {
         if (remainingEnemies.length === 0) {
             room.isCleared = true;
             this.spawnCoins(room);
+            if (room.id === 'bottom_center_room') {
+                const friend = this.physics.add.sprite(room.x - room.width / 4, room.y - room.height / 4, 'friend_almas').setScale(0.05).setInteractive();
+                friend.setData('friendId', 'almas');
+            }
         }
     }
 
@@ -330,6 +385,13 @@ export default class GameScene extends Phaser.Scene {
 
         if (this.coinCount >= 5) {
             this.openDoor('miniboss_door');
+            this.scene.pause('GameScene');
+            this.scene.launch('NotificationScene', {
+                parentSceneKey: 'GameScene',
+                text: 'You have done 5 promotions, now you can go to mini-boss to defeat him! Gates is open!',
+                leftImage: { key: 'dialogue_arman', scale: 0.02 },
+                rightImage: { key: 'nfactorial_logo', scale: 0.1 }
+            });
         }
     }
 
@@ -374,6 +436,16 @@ export default class GameScene extends Phaser.Scene {
         const isDead = enemy.takeDamage(50);
         if (isDead && roomId) {
             this.checkRoomCompletion(roomId);
+
+            if (roomId === 'miniboss_room' && enemy.texture.key === 'abai') {
+                this.scene.pause('GameScene');
+                this.scene.launch('NotificationScene', {
+                    parentSceneKey: 'GameScene',
+                    text: 'You have defeated mini-boss: Abai, now you can go to main boss! Gates is open!',
+                    leftImage: { key: 'dialogue_arman', scale: 0.02 },
+                    rightImage: { key: 'nfactorial_logo', scale: 0.1 }
+                });
+            }
 
             const bossRoom = this.rooms.find(r => r.id === 'boss_room');
             if (bossRoom && roomId === bossRoom.id && enemy.texture.key === 'diana') {
@@ -444,19 +516,25 @@ export default class GameScene extends Phaser.Scene {
 
         const almasRoom = this.rooms.find(r => r.id === 'bottom_center_room');
         const playerBounds = this.player.getBounds();
-        if (almasRoom && !almasRoom.isFriendTriggered && Phaser.Geom.Intersects.RectangleToRectangle(playerBounds, new Phaser.Geom.Rectangle(almasRoom.x - almasRoom.width / 2, almasRoom.y - almasRoom.height / 2, almasRoom.width, almasRoom.height))) {
-            almasRoom.isFriendTriggered = true;
-            const almasDialogue = [
-                { title: 'Игрок', text: 'Алмас, я дошёл почти до финала этажа.', portraitKey: playerPortrait },
-                { title: 'Алмас', text: 'Брат, ты вообще красавчик. Главное — не перегори. Ты ж не GPT, чтобы 24/7.', portraitKey: 'dialogue_almas' },
-                { title: 'Игрок', text: 'Спасибо, стараюсь.', portraitKey: playerPortrait },
-                { title: 'Алмас', text: 'Пей воду, общайся, не забывай про жизнь за пределами лаптопа. Мы тут не просто коды пишем — мы кайфуем.', portraitKey: 'dialogue_almas' },
-                { title: 'Игрок', text: 'Принято. Спасибо за вайб.', portraitKey: playerPortrait },
-                { title: 'Алмас', text: 'Всегда рад. Жми на full power — ты на правильном пути.', portraitKey: 'dialogue_almas' }
-            ];
-            this.startDialog(almasDialogue, () => {
-                this.scene.resume('GameScene');
-            });
+        if (almasRoom && almasRoom.isCleared && !almasRoom.isFriendTriggered) {
+            const almasSprite = this.children.list.find(child => child.getData && child.getData('friendId') === 'almas');
+            if (almasSprite) {
+                const almasBounds = (almasSprite as Phaser.GameObjects.Sprite).getBounds();
+                if (Phaser.Geom.Intersects.RectangleToRectangle(playerBounds, almasBounds)) {
+                    almasRoom.isFriendTriggered = true;
+                    const almasDialogue = [
+                        { title: 'Игрок', text: 'Алмас, я дошёл почти до финала этажа.', portraitKey: playerPortrait },
+                        { title: 'Алмас', text: 'Брат, ты вообще красавчик. Главное — не перегори. Ты ж не GPT, чтобы 24/7.', portraitKey: 'dialogue_almas' },
+                        { title: 'Игрок', text: 'Спасибо, стараюсь.', portraitKey: playerPortrait },
+                        { title: 'Алмас', text: 'Пей воду, общайся, не забывай про жизнь за пределами лаптопа. Мы тут не просто коды пишем — мы кайфуем.', portraitKey: 'dialogue_almas' },
+                        { title: 'Игрок', text: 'Принято. Спасибо за вайб.', portraitKey: playerPortrait },
+                        { title: 'Алмас', text: 'Всегда рад. Жми на full power — ты на правильном пути.', portraitKey: 'dialogue_almas' }
+                    ];
+                    this.startDialog(almasDialogue, () => {
+                        this.scene.resume('GameScene');
+                    });
+                }
+            }
         }
         
         // Check for boss triggers
@@ -522,5 +600,10 @@ export default class GameScene extends Phaser.Scene {
                 }
             });
         }
+    }
+
+    collectPowerUp(player: Phaser.GameObjects.GameObject, powerUp: Phaser.GameObjects.GameObject) {
+        (powerUp as PowerUp).destroy();
+        (player as Player).heal(100); // Heal to full
     }
 }

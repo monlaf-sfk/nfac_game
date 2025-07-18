@@ -125,4 +125,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
             this.setTexture(`${gender}_walk_3`);
         }
     }
+
+    heal(amount: number) {
+        this.health = Math.min(100, this.health + amount);
+    }
 }
