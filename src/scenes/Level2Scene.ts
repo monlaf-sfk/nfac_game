@@ -4,6 +4,7 @@ import UIScene from './UIScene';
 import Weapon from '../objects/Weapon';
 import Enemy from '../objects/Enemy';
 import Bullet from '../objects/Bullet';
+import PowerUp from '../objects/PowerUp';
 
 interface Room {
     x: number;
@@ -28,6 +29,7 @@ export default class Level2Scene extends Phaser.Scene {
     private enemies!: Phaser.Physics.Arcade.Group;
     private bullets!: Phaser.Physics.Arcade.Group;
     private doors!: Phaser.Physics.Arcade.StaticGroup;
+    private powerUps!: Phaser.Physics.Arcade.Group;
     private coinCount = 0;
     public crosshair!: Phaser.GameObjects.Image;
     private rooms: Room[] = [];
@@ -58,6 +60,10 @@ export default class Level2Scene extends Phaser.Scene {
             runChildUpdate: true
         });
         this.doors = this.physics.add.staticGroup();
+        this.powerUps = this.physics.add.group({
+            classType: PowerUp,
+            runChildUpdate: true
+        });
 
         const playerTexture = this.gender === 'boy' ? 'boy_walk_1' : 'girl_walk_1';
         this.player = new Player(this, 2500, 2500, playerTexture);
@@ -68,6 +74,7 @@ export default class Level2Scene extends Phaser.Scene {
         this.physics.add.collider(this.player, this.doors);
         this.physics.add.overlap(this.player, this.coins, this.collectCoin as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
         this.physics.add.overlap(this.player, this.weapons, this.pickUpWeapon as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
+        this.physics.add.overlap(this.player, this.powerUps, this.collectPowerUp as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
         this.physics.add.collider(this.player, this.enemies, this.playerHitByEnemy as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
         this.physics.add.collider(this.enemies, this.walls);
         this.physics.add.collider(this.bullets, this.walls, this.bulletHitWall as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
@@ -166,6 +173,14 @@ export default class Level2Scene extends Phaser.Scene {
         this.placeDoor(bossRoom.x, bossRoom.y + 420, 'boss_door_1', false);
 
         this.weapons.add(new Weapon(this, startRoom.x, startRoom.y, 'ak-47'));
+
+        const eligibleRooms = this.rooms.filter(r => r.id !== 'start' && !r.id.includes('boss'));
+        const selectedRoom = Phaser.Utils.Array.GetRandom(eligibleRooms);
+        if (selectedRoom) {
+            const powerUpX = Phaser.Math.Between(selectedRoom.x - selectedRoom.width / 4, selectedRoom.x + selectedRoom.width / 4);
+            const powerUpY = Phaser.Math.Between(selectedRoom.y - selectedRoom.height / 4, selectedRoom.y + selectedRoom.height / 4);
+            this.powerUps.add(new PowerUp(this, powerUpX, powerUpY, 'nfactorial_logo'));
+        }
 
         this.rooms.forEach(room => {
             this.spawnEnemies(room);
@@ -546,5 +561,10 @@ export default class Level2Scene extends Phaser.Scene {
                 this.scene.resume('Level2Scene');
             });
         }
+    }
+
+    collectPowerUp(player: Phaser.Types.Physics.Arcade.GameObjectWithBody, powerUp: Phaser.Types.Physics.Arcade.GameObjectWithBody) {
+        (powerUp as PowerUp).destroy();
+        (player as Player).heal(100);
     }
 }

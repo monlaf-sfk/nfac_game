@@ -168,12 +168,12 @@ export default class GameScene extends Phaser.Scene {
         this.placeDoor(minibossRoom.x, 2100, 'miniboss_door');
 
         const eligibleRooms = this.rooms.filter(r => r.id !== 'room1' && !r.id.includes('boss'));
-        const selectedRooms = Phaser.Utils.Array.Shuffle(eligibleRooms).slice(0, 3);
-        selectedRooms.forEach(room => {
-            const powerUpX = Phaser.Math.Between(room.x - room.width / 4, room.x + room.width / 4);
-            const powerUpY = Phaser.Math.Between(room.y - room.height / 4, room.y + room.height / 4);
+        const selectedRoom = Phaser.Utils.Array.GetRandom(eligibleRooms);
+        if (selectedRoom) {
+            const powerUpX = Phaser.Math.Between(selectedRoom.x - selectedRoom.width / 4, selectedRoom.x + selectedRoom.width / 4);
+            const powerUpY = Phaser.Math.Between(selectedRoom.y - selectedRoom.height / 4, selectedRoom.y + selectedRoom.height / 4);
             this.powerUps.add(new PowerUp(this, powerUpX, powerUpY, 'nfactorial_logo'));
-        });
+        }
 
         const triggerZone = this.add.zone(minibossRoom.x, 2200, 128, 64);
         this.physics.world.enable(triggerZone);
