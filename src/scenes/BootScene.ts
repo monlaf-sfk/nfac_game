@@ -56,6 +56,7 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('pc', 'assets/object/pc.png');
         this.load.image('backend_question', 'assets/object/backend.png');
         this.load.image('wall_1', 'assets/object/wall_1.png'); // Add wall_1.png
+        this.load.image('floor_1', 'assets/object/floor.png'); // Add floor.png
 
         // Загрузка кадров для врага
         for (let i = 1; i <= 2; i++) {
@@ -70,9 +71,7 @@ export default class BootScene extends Phaser.Scene {
         const graphics = this.make.graphics();
 
         // Текстура пола
-        graphics.fillStyle(0x222222, 1);
-        graphics.fillRect(0, 0, 64, 64);
-        graphics.generateTexture('floor_placeholder', 64, 64);
+        this.load.image('floor_placeholder', 'assets/object/floor.png'); // Use floor.png for floor_placeholder
 
         // Текстура стены
         this.load.image('wall_placeholder', 'assets/object/wall_1.png'); // Use wall_1.png for wall_placeholder

@@ -75,11 +75,11 @@ export default class GameScene extends Phaser.Scene {
         this.physics.add.collider(this.player, this.walls);
         this.physics.add.collider(this.player, this.doors);
         this.physics.add.overlap(this.player, this.coins, this.collectCoin as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
-        this.physics.add.overlap(this.player, this.weapons, this.pickUpWeapon, undefined, this);
+        this.physics.add.overlap(this.player, this.weapons, this.pickUpWeapon as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
         this.physics.add.overlap(this.player, this.powerUps, this.collectPowerUp as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
-        this.physics.add.collider(this.player, this.enemies, this.playerHitByEnemy, undefined, this);
+        this.physics.add.collider(this.player, this.enemies, this.playerHitByEnemy as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
         this.physics.add.collider(this.enemies, this.walls);
-        this.physics.add.collider(this.bullets, this.walls, this.bulletHitWall, undefined, this);
+        this.physics.add.collider(this.bullets, this.walls, this.bulletHitWall as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
         this.physics.add.collider(this.bullets, this.enemies, this.bulletHitEnemy as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
 
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
@@ -165,7 +165,7 @@ export default class GameScene extends Phaser.Scene {
         this.createVerticalCorridor(room2.y, bottomLeftRoom.y, room2.x);
         this.createHorizontalCorridor(bottomLeftRoom.x, bottomCenterRoom.x, bottomCenterRoom.y);
 
-        this.placeDoor(minibossRoom.x, 2100, 'miniboss_door');
+        this.placeDoor(minibossRoom.x, 2100, 'miniboss_door', false);
 
         const eligibleRooms = this.rooms.filter(r => r.id !== 'room1' && !r.id.includes('boss'));
         const selectedRoom = Phaser.Utils.Array.GetRandom(eligibleRooms);
@@ -306,7 +306,7 @@ export default class GameScene extends Phaser.Scene {
         const left = centerX - roomWidth / 2;
         const top = centerY - roomHeight / 2;
         
-        this.add.tileSprite(left, top, roomWidth, roomHeight, 'floor_placeholder').setOrigin(0);
+        this.add.tileSprite(left, top, roomWidth, roomHeight, 'floor_placeholder').setOrigin(0).setTileScale(0.5, 0.5);
 
         for (let i = 0; i < roomWidth / wallSize; i++) {
             for (let j = 0; j < roomHeight / wallSize; j++) {
@@ -358,7 +358,7 @@ export default class GameScene extends Phaser.Scene {
         const corridorWidth = 2 * wallSize;
         const startX = Math.min(x1, x2) + roomWidth / 2;
         const endX = Math.max(x1, x2) - roomWidth / 2;
-        this.add.tileSprite(startX, y - corridorWidth / 2, endX - startX, corridorWidth, 'floor_placeholder').setOrigin(0);
+        this.add.tileSprite(startX, y - corridorWidth / 2, endX - startX, corridorWidth, 'floor_placeholder').setOrigin(0).setTileScale(0.5, 0.5);
         for (let x = startX; x < endX; x += wallSize) {
             this.walls.create(x, y - corridorWidth / 2 - wallSize, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
             this.walls.create(x, y + corridorWidth / 2, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
@@ -371,20 +371,30 @@ export default class GameScene extends Phaser.Scene {
         const corridorWidth = 2 * wallSize;
         const startY = Math.min(y1, y2) + roomHeight / 2;
         const endY = Math.max(y1, y2) - roomHeight / 2;
-        this.add.tileSprite(x - corridorWidth / 2, startY, corridorWidth, endY - startY, 'floor_placeholder').setOrigin(0);
+        this.add.tileSprite(x - corridorWidth / 2, startY, corridorWidth, endY - startY, 'floor_placeholder').setOrigin(0).setTileScale(0.5, 0.5);
         for (let y = startY; y < endY; y += wallSize) {
             this.walls.create(x - corridorWidth / 2 - wallSize, y, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
             this.walls.create(x + corridorWidth / 2, y, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
         }
     }
 
-    placeDoor(x: number, y: number, doorId: string) {
-        // Помечаем ОБЕ части двери одним ID
-        const door1 = this.doors.create(x - 64, y, 'door_placeholder').setOrigin(0).refreshBody();
-        door1.setData('doorId', doorId);
-        
-        const door2 = this.doors.create(x, y, 'door_placeholder').setOrigin(0).refreshBody();
-        door2.setData('doorId', doorId);
+    placeDoor(x: number, y: number, doorId: string, isVertical: boolean) {
+        const wallSize = 64;
+        const doorTint = 0xff0000;
+
+        if (isVertical) {
+            const doorTop = this.doors.create(x, y - wallSize, 'wall_placeholder');
+            doorTop.setData('doorId', doorId).setOrigin(0).setScale(0.5).refreshBody().setTint(doorTint);
+    
+            const doorBottom = this.doors.create(x, y, 'wall_placeholder');
+            doorBottom.setData('doorId', doorId).setOrigin(0).setScale(0.5).refreshBody().setTint(doorTint);
+        } else {
+            const doorLeft = this.doors.create(x - wallSize, y, 'wall_placeholder');
+            doorLeft.setData('doorId', doorId).setOrigin(0).setScale(0.5).refreshBody().setTint(doorTint);
+
+            const doorRight = this.doors.create(x, y, 'wall_placeholder');
+            doorRight.setData('doorId', doorId).setOrigin(0).setScale(0.5).refreshBody().setTint(doorTint);
+        }
     }
 
     collectCoin(player: Phaser.Physics.Arcade.Sprite, coin: Phaser.Physics.Arcade.Sprite) {
@@ -417,7 +427,7 @@ export default class GameScene extends Phaser.Scene {
         doorsToDestroy.forEach(door => door.destroy());
     }
 
-    pickUpWeapon(player, weapon) {
+    pickUpWeapon(player: Phaser.Physics.Arcade.Sprite, weapon: Phaser.Physics.Arcade.Sprite) {
         const weaponInstance = weapon as Weapon;
         this.weapons.remove(weaponInstance, false);
 
@@ -436,7 +446,7 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
-    bulletHitWall(bullet, wall) {
+    bulletHitWall(bullet: Phaser.Types.Physics.Arcade.GameObjectWithBody, wall: Phaser.Types.Physics.Arcade.GameObjectWithBody) {
         bullet.destroy();
     }
 
@@ -454,6 +464,11 @@ export default class GameScene extends Phaser.Scene {
                     leftImage: { key: 'dialogue_arman', scale: 0.02 },
                     rightImage: { key: 'nfactorial_logo', scale: 0.1 }
                 });
+                // Add this for the boss door in GameScene
+                const bossRoom = this.rooms.find(r => r.id === 'boss_room');
+                if (bossRoom) {
+                    this.placeDoor(bossRoom.x, (bossRoom.y + this.rooms.find(r => r.id === 'miniboss_room')!.y) / 2, 'boss_door', false);
+                }
             }
 
             const bossRoom = this.rooms.find(r => r.id === 'boss_room');
@@ -477,7 +492,7 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
-    playerHitByEnemy(player, enemy) {
+    playerHitByEnemy(player: Phaser.Types.Physics.Arcade.GameObjectWithBody, enemy: Phaser.Types.Physics.Arcade.GameObjectWithBody) {
         if (this.player.isInvulnerable()) return;
 
         this.player.takeDamage(10);

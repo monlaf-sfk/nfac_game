@@ -273,7 +273,7 @@ export default class Level2Scene extends Phaser.Scene {
         const left = centerX - roomWidth / 2;
         const top = centerY - roomHeight / 2;
         
-        this.add.tileSprite(left, top, roomWidth, roomHeight, 'floor_placeholder').setOrigin(0);
+        this.add.tileSprite(left, top, roomWidth, roomHeight, 'floor_placeholder').setOrigin(0).setTileScale(0.5, 0.5);
 
         for (let i = 0; i < roomWidth / wallSize; i++) {
             for (let j = 0; j < roomHeight / wallSize; j++) {
@@ -290,7 +290,7 @@ export default class Level2Scene extends Phaser.Scene {
                 if (openings.right && i === (roomWidth / wallSize) - 1 && y >= centerY - doorSize / 2 && y < centerY + doorSize / 2) isDoor = true;
 
                 if (!isDoor) {
-                    this.walls.create(x, y, 'wall_placeholder').setOrigin(0).refreshBody();
+                    this.walls.create(x, y, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
                 }
             }
         }
@@ -304,11 +304,11 @@ export default class Level2Scene extends Phaser.Scene {
         const endX = Math.max(x1, x2) - roomWidth / 2;
         const corridorLength = endX - startX;
 
-        this.add.tileSprite(startX, y - corridorWidth / 2, corridorLength, corridorWidth, 'floor_placeholder').setOrigin(0);
+        this.add.tileSprite(startX, y - corridorWidth / 2, corridorLength, corridorWidth, 'floor_placeholder').setOrigin(0).setTileScale(0.5, 0.5);
 
         for (let i = startX; i < endX; i += wallSize) {
-            this.walls.create(i, y - corridorWidth / 2 - wallSize, 'wall_placeholder').setOrigin(0).refreshBody();
-            this.walls.create(i, y + corridorWidth / 2, 'wall_placeholder').setOrigin(0).refreshBody();
+            this.walls.create(i, y - corridorWidth / 2 - wallSize, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
+            this.walls.create(i, y + corridorWidth / 2, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
         }
     }
 
@@ -320,11 +320,11 @@ export default class Level2Scene extends Phaser.Scene {
         const endY = Math.max(y1, y2) - roomHeight / 2;
         const corridorLength = endY - startY;
 
-        this.add.tileSprite(x - corridorWidth / 2, startY, corridorWidth, corridorLength, 'floor_placeholder').setOrigin(0);
+        this.add.tileSprite(x - corridorWidth / 2, startY, corridorWidth, corridorLength, 'floor_placeholder').setOrigin(0).setTileScale(0.5, 0.5);
 
         for (let i = startY; i < endY; i += wallSize) {
-            this.walls.create(x - corridorWidth / 2 - wallSize, i, 'wall_placeholder').setOrigin(0).refreshBody();
-            this.walls.create(x + corridorWidth / 2, i, 'wall_placeholder').setOrigin(0).refreshBody();
+            this.walls.create(x - corridorWidth / 2 - wallSize, i, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
+            this.walls.create(x + corridorWidth / 2, i, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
         }
     }
 
@@ -334,16 +334,16 @@ export default class Level2Scene extends Phaser.Scene {
 
         if (isVertical) {
             const doorTop = this.doors.create(x, y - wallSize, 'wall_placeholder');
-            doorTop.setData('doorId', doorId).setOrigin(0).refreshBody().setTint(doorTint);
+            doorTop.setData('doorId', doorId).setOrigin(0).setScale(0.5).refreshBody().setTint(doorTint);
     
             const doorBottom = this.doors.create(x, y, 'wall_placeholder');
-            doorBottom.setData('doorId', doorId).setOrigin(0).refreshBody().setTint(doorTint);
+            doorBottom.setData('doorId', doorId).setOrigin(0).setScale(0.5).refreshBody().setTint(doorTint);
         } else {
             const doorLeft = this.doors.create(x - wallSize, y, 'wall_placeholder');
-            doorLeft.setData('doorId', doorId).setOrigin(0).refreshBody().setTint(doorTint);
+            doorLeft.setData('doorId', doorId).setOrigin(0).setScale(0.5).refreshBody().setTint(doorTint);
 
             const doorRight = this.doors.create(x, y, 'wall_placeholder');
-            doorRight.setData('doorId', doorId).setOrigin(0).refreshBody().setTint(doorTint);
+            doorRight.setData('doorId', doorId).setOrigin(0).setScale(0.5).refreshBody().setTint(doorTint);
         }
     }
 
