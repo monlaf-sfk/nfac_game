@@ -51,7 +51,7 @@ export default class GameOverScene extends Phaser.Scene {
         });
         
         // Author credit
-        this.add.text(width / 2, height - 50, 'A game by rasulkerimzhanov', {
+        this.add.text(width / 2, height - 50, 'A game by rasul & omar', {
             fontSize: '20px',
             fontFamily: 'Arial, sans-serif',
             color: '#aaaaaa'

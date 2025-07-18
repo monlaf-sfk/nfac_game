@@ -20,6 +20,16 @@ interface Room {
     isFriendTriggered?: boolean;
 }
 
+interface Corridor {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    horizontal: boolean;
+    room1Id: string;
+    room2Id: string;
+}
+
 export default class GameScene extends Phaser.Scene {
     public player!: Player;
     private gender!: string;
@@ -30,6 +40,8 @@ export default class GameScene extends Phaser.Scene {
     private bullets!: Phaser.Physics.Arcade.Group;
     private doors!: Phaser.Physics.Arcade.StaticGroup;
     private powerUps!: Phaser.Physics.Arcade.Group;
+    private corridorWalls!: Phaser.Physics.Arcade.StaticGroup;
+    private activeRoomId: string | null = null;
     private coinCount = 0;
     public crosshair!: Phaser.GameObjects.Image;
     private rooms: Room[] = [];
@@ -65,6 +77,8 @@ export default class GameScene extends Phaser.Scene {
             runChildUpdate: true
         });
 
+        this.corridorWalls = this.physics.add.staticGroup();
+
         // Сначала создаем игрока
         const playerTexture = this.gender === 'boy' ? 'boy_walk_1' : 'girl_walk_1';
         this.player = new Player(this, 2500, 2500, playerTexture);
@@ -74,13 +88,16 @@ export default class GameScene extends Phaser.Scene {
 
         this.physics.add.collider(this.player, this.walls);
         this.physics.add.collider(this.player, this.doors);
+        this.physics.add.collider(this.player, this.corridorWalls); // Добавлена коллизия игрока с желтыми блоками
         this.physics.add.overlap(this.player, this.coins, this.collectCoin as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
         this.physics.add.overlap(this.player, this.weapons, this.pickUpWeapon as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
         this.physics.add.overlap(this.player, this.powerUps, this.collectPowerUp as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
         this.physics.add.collider(this.player, this.enemies, this.playerHitByEnemy as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
         this.physics.add.collider(this.enemies, this.walls);
+        this.physics.add.collider(this.enemies, this.corridorWalls);
         this.physics.add.collider(this.bullets, this.walls, this.bulletHitWall as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
         this.physics.add.collider(this.bullets, this.enemies, this.bulletHitEnemy as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
+        this.physics.add.overlap(this.bullets, this.corridorWalls, this.bulletHitCorridorWall as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this); // Изменено на overlap
 
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
         this.cameras.main.setBounds(0, 0, 5000, 5000);
@@ -157,13 +174,23 @@ export default class GameScene extends Phaser.Scene {
         const bottomLeftRoom = this.rooms.find(r => r.id === 'bottom_left_room')!;
         const bottomCenterRoom = this.rooms.find(r => r.id === 'bottom_center_room')!;
 
-        this.createHorizontalCorridor(room2.x, room1.x, room1.y);
-        this.createHorizontalCorridor(room1.x, room3.x, room1.y);
-        this.createVerticalCorridor(minibossRoom.y, room3.y, room3.x);
-        this.createVerticalCorridor(bossRoom.y, minibossRoom.y, minibossRoom.x);
-        this.createVerticalCorridor(room1.y, bottomCenterRoom.y, room1.x);
-        this.createVerticalCorridor(room2.y, bottomLeftRoom.y, room2.x);
-        this.createHorizontalCorridor(bottomLeftRoom.x, bottomCenterRoom.x, bottomCenterRoom.y);
+        const corridors: Corridor[] = [
+            { x1: room2.x, y1: room2.y, x2: room1.x, y2: room1.y, horizontal: true, room1Id: 'room2', room2Id: 'room1' },
+            { x1: room1.x, y1: room1.y, x2: room3.x, y2: room3.y, horizontal: true, room1Id: 'room1', room2Id: 'room3' },
+            { x1: minibossRoom.x, y1: minibossRoom.y, x2: room3.x, y2: room3.y, horizontal: false, room1Id: 'miniboss_room', room2Id: 'room3' },
+            { x1: bossRoom.x, y1: bossRoom.y, x2: minibossRoom.x, y2: minibossRoom.y, horizontal: false, room1Id: 'boss_room', room2Id: 'miniboss_room' },
+            { x1: room1.x, y1: room1.y, x2: bottomCenterRoom.x, y2: bottomCenterRoom.y, horizontal: false, room1Id: 'room1', room2Id: 'bottom_center_room' },
+            { x1: room2.x, y1: room2.y, x2: bottomLeftRoom.x, y2: bottomLeftRoom.y, horizontal: false, room1Id: 'room2', room2Id: 'bottom_left_room' },
+            { x1: bottomLeftRoom.x, y1: bottomLeftRoom.y, x2: bottomCenterRoom.x, y2: bottomCenterRoom.y, horizontal: true, room1Id: 'bottom_left_room', room2Id: 'bottom_center_room' },
+        ];
+        
+        corridors.forEach(corridor => {
+            if (corridor.horizontal) {
+                this.createHorizontalCorridor(corridor.x1, corridor.x2, corridor.y1, corridor.room1Id, corridor.room2Id);
+            } else {
+                this.createVerticalCorridor(corridor.y1, corridor.y2, corridor.x1, corridor.room1Id, corridor.room2Id);
+            }
+        });
 
         this.placeDoor(minibossRoom.x, 2100, 'miniboss_door', false);
 
@@ -256,6 +283,18 @@ export default class GameScene extends Phaser.Scene {
         if (remainingEnemies.length === 0) {
             room.isCleared = true;
             this.spawnCoins(room);
+            // Make corridor walls transparent and non-collidable for this room
+            this.corridorWalls.getChildren().forEach((wall: Phaser.GameObjects.GameObject) => {
+                const corridorWall = wall as Phaser.Physics.Arcade.Sprite;
+                if (corridorWall.getData('isEntranceWall') && corridorWall.getData('roomId') === roomId) {
+                    corridorWall.setAlpha(0.5);
+                    if (corridorWall.body) {
+                        corridorWall.body.enable = false;
+                    }
+                    corridorWall.refreshBody(); // Добавлено для обновления физического тела
+                }
+            });
+
             if (room.id === 'bottom_center_room') {
                 const friend = this.physics.add.sprite(room.x - room.width / 4, room.y - room.height / 4, 'friend_almas').setScale(0.05).setInteractive();
                 friend.setData('friendId', 'almas');
@@ -352,26 +391,108 @@ export default class GameScene extends Phaser.Scene {
         });
     }
     
-    createHorizontalCorridor(x1: number, x2: number, y: number) {
+    createHorizontalCorridor(x1: number, x2: number, y: number, room1Id: string, room2Id: string) {
         const wallSize = 64;
         const roomWidth = 12 * wallSize;
         const corridorWidth = 2 * wallSize;
         const startX = Math.min(x1, x2) + roomWidth / 2;
         const endX = Math.max(x1, x2) - roomWidth / 2;
         this.add.tileSprite(startX, y - corridorWidth / 2, endX - startX, corridorWidth, 'floor_placeholder').setOrigin(0).setTileScale(0.5, 0.5);
+
+        // Walls for room1's entrance/exit to this corridor
+        const room1CorridorX = (x1 < x2) ? (x1 + roomWidth / 2) : (x1 - roomWidth / 2);
+        const wall1a = this.corridorWalls.create(room1CorridorX, y - wallSize / 2, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        wall1a.body.setSize(wallSize * 0.5, wallSize * 0.5);
+        wall1a.setData('isEntranceWall', true);
+        wall1a.setData('roomId', room1Id);
+        if (wall1a.body) { 
+            wall1a.body.enable = false; // Изначально не блокируем
+        }
+        wall1a.refreshBody(); // Добавлено для обновления физического тела
+
+        const wall1b = this.corridorWalls.create(room1CorridorX, y + wallSize / 2, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        wall1b.body.setSize(wallSize * 0.5, wallSize * 0.5);
+        wall1b.setData('isEntranceWall', true);
+        wall1b.setData('roomId', room1Id);
+        if (wall1b.body) {
+            wall1b.body.enable = false; // Изначально не блокируем
+        }
+        wall1b.refreshBody(); // Добавлено для обновления физического тела
+
+        // Walls for room2's entrance/exit to this corridor
+        const room2CorridorX = (x1 < x2) ? (x2 - roomWidth / 2) : (x2 + roomWidth / 2);
+        const wall2a = this.corridorWalls.create(room2CorridorX, y - wallSize / 2, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        wall2a.body.setSize(wallSize * 0.5, wallSize * 0.5);
+        wall2a.setData('isEntranceWall', true);
+        wall2a.setData('roomId', room2Id);
+        if (wall2a.body) {
+            wall2a.body.enable = false; // Изначально не блокируем
+        }
+        wall2a.refreshBody(); // Добавлено для обновления физического тела
+
+        const wall2b = this.corridorWalls.create(room2CorridorX, y + wallSize / 2, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        wall2b.body.setSize(wallSize * 0.5, wallSize * 0.5);
+        wall2b.setData('isEntranceWall', true);
+        wall2b.setData('roomId', room2Id);
+        if (wall2b.body) {
+            wall2b.body.enable = false; // Изначально не блокируем
+        }
+        wall2b.refreshBody(); // Добавлено для обновления физического тела
+
         for (let x = startX; x < endX; x += wallSize) {
             this.walls.create(x, y - corridorWidth / 2 - wallSize, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
             this.walls.create(x, y + corridorWidth / 2, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
         }
     }
     
-    createVerticalCorridor(y1: number, y2: number, x: number) {
+    createVerticalCorridor(y1: number, y2: number, x: number, room1Id: string, room2Id: string) {
         const wallSize = 64;
         const roomHeight = 10 * wallSize;
         const corridorWidth = 2 * wallSize;
         const startY = Math.min(y1, y2) + roomHeight / 2;
         const endY = Math.max(y1, y2) - roomHeight / 2;
         this.add.tileSprite(x - corridorWidth / 2, startY, corridorWidth, endY - startY, 'floor_placeholder').setOrigin(0).setTileScale(0.5, 0.5);
+
+        // Walls for room1's entrance/exit to this corridor
+        const room1CorridorY = (y1 < y2) ? (y1 + roomHeight / 2) : (y1 - roomHeight / 2);
+        const wall1a = this.corridorWalls.create(x - wallSize / 2, room1CorridorY, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        wall1a.body.setSize(wallSize * 0.5, wallSize * 0.5);
+        wall1a.setData('isEntranceWall', true);
+        wall1a.setData('roomId', room1Id);
+        if (wall1a.body) {
+            wall1a.body.enable = false; // Изначально не блокируем
+        }
+        wall1a.refreshBody(); // Добавлено для обновления физического тела
+
+        const wall1b = this.corridorWalls.create(x + wallSize / 2, room1CorridorY, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        wall1b.body.setSize(wallSize * 0.5, wallSize * 0.5);
+        wall1b.setData('isEntranceWall', true);
+        wall1b.setData('roomId', room1Id);
+        if (wall1b.body) {
+            wall1b.body.enable = false; // Изначально не блокируем
+        }
+        wall1b.refreshBody(); // Добавлено для обновления физического тела
+
+        // Walls for room2's entrance/exit to this corridor
+        const room2CorridorY = (y1 < y2) ? (y2 - roomHeight / 2) : (y2 + roomHeight / 2);
+        const wall2a = this.corridorWalls.create(x - wallSize / 2, room2CorridorY, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        wall2a.body.setSize(wallSize * 0.5, wallSize * 0.5);
+        wall2a.setData('isEntranceWall', true);
+        wall2a.setData('roomId', room2Id);
+        if (wall2a.body) {
+            wall2a.body.enable = false; // Изначально не блокируем
+        }
+        wall2a.refreshBody(); // Добавлено для обновления физического тела
+
+        const wall2b = this.corridorWalls.create(x + wallSize / 2, room2CorridorY, 'wall_placeholder').setOrigin(0.5).setScale(0.5).setAlpha(0.5).setTint(0xffff00);
+        wall2b.body.setSize(wallSize * 0.5, wallSize * 0.5);
+        wall2b.setData('isEntranceWall', true);
+        wall2b.setData('roomId', room2Id);
+        if (wall2b.body) {
+            wall2b.body.enable = false; // Изначально не блокируем
+        }
+        wall2b.refreshBody(); // Добавлено для обновления физического тела
+
         for (let y = startY; y < endY; y += wallSize) {
             this.walls.create(x - corridorWidth / 2 - wallSize, y, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
             this.walls.create(x + corridorWidth / 2, y, 'wall_placeholder').setOrigin(0).setScale(0.5).refreshBody();
@@ -412,6 +533,7 @@ export default class GameScene extends Phaser.Scene {
                 leftImage: { key: 'dialogue_arman', scale: 0.02 },
                 rightImage: { key: 'nfactorial_logo', scale: 0.1 }
             });
+            this.events.emit('room-cleared', 'room1'); // Emit event for room1 completion
         }
     }
 
@@ -448,6 +570,19 @@ export default class GameScene extends Phaser.Scene {
 
     bulletHitWall(bullet: Phaser.Types.Physics.Arcade.GameObjectWithBody, wall: Phaser.Types.Physics.Arcade.GameObjectWithBody) {
         bullet.destroy();
+    }
+
+    bulletHitCorridorWall(bullet: Phaser.Types.Physics.Arcade.GameObjectWithBody, wall: Phaser.Types.Physics.Arcade.GameObjectWithBody) {
+        const corridorWall = wall as Phaser.Physics.Arcade.Sprite;
+        const associatedRoomId = corridorWall.getData('roomId');
+        const associatedRoom = this.rooms.find(r => r.id === associatedRoomId);
+
+        // If the associated room is uncleared, destroy the bullet (it blocks bullets)
+        if (associatedRoom && !associatedRoom.isCleared) {
+            bullet.destroy();
+        } else {
+            // Otherwise (room is cleared), the bullet passes through (do nothing)
+        }
     }
 
     bulletHitEnemy(bullet: Bullet, enemy: Enemy) {
@@ -518,6 +653,51 @@ export default class GameScene extends Phaser.Scene {
     update(time: number, delta: number) {
         this.player.update(time, delta);
         this.enemies.getChildren().forEach(enemy => (enemy as Enemy).update());
+        
+        // Determine the room the player is currently in
+        let playerCurrentRoom: Room | null = null;
+        this.rooms.forEach(room => {
+            const roomBounds = new Phaser.Geom.Rectangle(room.x - room.width / 2, room.y - room.height / 2, room.width, room.height);
+            if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), roomBounds)) {
+                playerCurrentRoom = room;
+            }
+        });
+
+        // Update all corridor walls based on the cleared status of their associated room and player's current room
+        this.corridorWalls.getChildren().forEach((wall: Phaser.GameObjects.GameObject) => {
+            const corridorWall = wall as Phaser.Physics.Arcade.Sprite;
+            if (corridorWall.getData('isEntranceWall')) {
+                const associatedRoomId = corridorWall.getData('roomId');
+                const associatedRoom = this.rooms.find(r => r.id === associatedRoomId);
+
+                if (associatedRoom) {
+                    if (associatedRoom.isCleared) {
+                        // If the associated room is cleared, make walls semi-transparent and non-collidable
+                        corridorWall.setAlpha(0.5);
+                        if (corridorWall.body) {
+                            corridorWall.body.enable = false;
+                        }
+                    } else {
+                        // If the associated room is uncleared
+                        // Enable body only if player is inside the room (to block exit)
+                        if (playerCurrentRoom && playerCurrentRoom.id === associatedRoomId) {
+                            if (corridorWall.body) {
+                                corridorWall.body.enable = true;
+                            }
+                            corridorWall.setAlpha(1); // Opaque
+                        } else {
+                            // Player is outside an uncleared room, allow entry but block bullets
+                            if (corridorWall.body) {
+                                corridorWall.body.enable = false; // Allow player to pass
+                            }
+                            corridorWall.setAlpha(0.5); // Semi-transparent
+                        }
+                    }
+                    // Refresh body to ensure collision updates are applied
+                    corridorWall.refreshBody();
+                }
+            }
+        });
 
         if (this.crosshair) {
             const pointer = this.input.activePointer;
